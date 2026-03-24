@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-i18n="title">القمة - تسجيل الدخول</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Oswald:ital,wght@1,700&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="lang-switcher">
+        <button id="langToggle" class="lang-btn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="2" y1="12" x2="22" y2="12"></line>
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+            </svg>
+            <span id="langText" data-i18n="langText">English</span>
+        </button>
+    </div>
+
+    <div class="background-animation">
+        <div class="shape shape-1"></div>
+        <div class="shape shape-2"></div>
+        <div class="shape shape-3"></div>
+    </div>
+    <div class="container" id="mainContainer">
+        <!-- Logo -->
+        <h1 class="logo" data-i18n="logo">القمة</h1>
+        
+        <div class="forms-wrapper">
+            <!-- 1. نموذج تسجيل الدخول -->
+            <form class="login-form form-panel active-form" id="loginForm">
+                <h2 data-i18n="loginTitle">تسجيل الدخول</h2>
+                
+                <div class="input-group">
+                    <input type="email" id="login-email" required placeholder=" ">
+                    <label for="login-email" data-i18n="emailLabel">البريد الإلكتروني</label>
+                </div>
+                
+                <div class="input-group">
+                    <input type="password" id="login-password" required placeholder=" ">
+                    <label for="login-password" data-i18n="passLabel">كلمة المرور</label>
+                </div>
+                
+                <button type="submit" class="btn">
+                    <span data-i18n="loginBtn">دخول المحارب</span>
+                </button>
+                
+                <p class="signup-link">
+                    <span data-i18n="signupText">جاهز للتحدي؟ </span>
+                    <a href="#" id="showRegister" data-i18n="signupLink">سجل الآن</a>
+                </p>
+            </form>
+
+            <!-- 2. نموذج إنشاء حساب -->
+            <form class="login-form form-panel hidden-form" id="registerForm">
+                <h2 data-i18n="regTitle">حساب بطل جديد</h2>
+                
+                <div class="input-group">
+                    <input type="text" id="reg-name" required placeholder=" ">
+                    <label for="reg-name" data-i18n="nameLabel">الاسم الكامل</label>
+                </div>
+
+                <div class="input-group">
+                    <input type="email" id="reg-email" required placeholder=" ">
+                    <label for="reg-email" data-i18n="emailLabel">البريد الإلكتروني</label>
+                </div>
+                
+                <div class="input-group">
+                    <input type="password" id="reg-password" required placeholder=" ">
+                    <label for="reg-password" data-i18n="passLabel">كلمة المرور</label>
+                </div>
+                
+                <button type="submit" class="btn">
+                    <span data-i18n="regBtn">انضم للأبطال !</span>
+                </button>
+                
+                <p class="signup-link">
+                    <span data-i18n="loginText">لديك حساب بالفعل؟ </span>
+                    <a href="#" id="showLogin" data-i18n="loginLink">العودة لدخول المحارب</a>
+                </p>
+            </form>
+
+            <!-- 3. نموذج استكمال الملف -->
+            <form class="login-form form-panel hidden-form" id="profileForm">
+                <h2 data-i18n="profileTitle">استكمال الملف الشخصي</h2>
+                
+                <div class="gender-selection">
+                    <label class="gender-card">
+                        <input type="radio" name="gender" value="male" required>
+                        <div class="gender-content" data-i18n="male">ذكر</div>
+                    </label>
+                    <label class="gender-card">
+                        <input type="radio" name="gender" value="female" required>
+                        <div class="gender-content" data-i18n="female">أنثى</div>
+                    </label>
+                </div>
+
+                <div class="input-group">
+                    <input type="number" id="profile-age" required placeholder=" " min="10" max="100">
+                    <label for="profile-age" data-i18n="ageLabel">العمر</label>
+                </div>
+
+                <div class="input-group">
+                    <input type="number" id="profile-height" required placeholder=" " min="50" max="250">
+                    <label for="profile-height" data-i18n="heightLabel">الطول (سم)</label>
+                </div>
+                
+                <div class="input-group">
+                    <input type="number" id="profile-weight" required placeholder=" " min="20" max="300">
+                    <label for="profile-weight" data-i18n="weightLabel">الوزن الحالي (كجم)</label>
+                </div>
+                
+                <button type="submit" class="btn">
+                    <span data-i18n="saveBtn">استمرار</span>
+                </button>
+            </form>
+
+            <!-- 4. نموذج اختيار الهدف -->
+            <form class="login-form form-panel hidden-form" id="goalForm">
+                <h2 data-i18n="goalTitle">الهدف الرياضي</h2>
+                <p style="text-align: center; color: var(--text-muted); margin-bottom: 2rem; font-size: 0.95rem; line-height: 1.5;" data-i18n="goalDesc">اختر مسارك، وسنقوم بتوجيهك للوصول إلى القمة.</p>
+                
+                <div class="goal-selection">
+                    <label class="goal-card">
+                        <input type="radio" name="goal" value="bulking" required>
+                        <div class="goal-content">
+                            <span class="goal-icon">💪</span>
+                            <span data-i18n="bulking">التضخيم وبناء العضل</span>
+                        </div>
+                    </label>
+                    
+                    <label class="goal-card">
+                        <input type="radio" name="goal" value="cutting" required>
+                        <div class="goal-content">
+                            <span class="goal-icon">🔥</span>
+                            <span data-i18n="cutting">التنشيف وحرق الدهون</span>
+                        </div>
+                    </label>
+                    
+                    <label class="goal-card">
+                        <input type="radio" name="goal" value="weightloss" required>
+                        <div class="goal-content">
+                            <span class="goal-icon">🏃</span>
+                            <span data-i18n="weightloss">إنقاص الوزن واللياقة</span>
+                        </div>
+                    </label>
+                </div>
+            </form>
+
+            <!-- 5. نموذج الوزن المستهدف -->
+            <form class="login-form form-panel hidden-form" id="targetWeightForm">
+                <h2 data-i18n="targetTitle">الوزن المستهدف</h2>
+                <p style="text-align: center; color: var(--text-muted); margin-bottom: 2rem; font-size: 0.95rem; line-height: 1.5;" data-i18n="targetDesc">نحتاج إلى وزنك المستهدف لنحلل احتياجك من السعرات الحرارية ونصمم لك خطتك بدقة.</p>
+                
+                <div class="input-group">
+                    <input type="number" id="target-weight-input" required placeholder=" " min="30" max="300">
+                    <label for="target-weight-input" data-i18n="targetWeightLabel">الوزن المطلوب (كجم)</label>
+                </div>
+                
+                <button type="submit" class="btn">
+                    <span data-i18n="analyzeBtn">تحليل السعرات والانطلاق</span>
+                </button>
+            </form>
+
+            <!-- 6. شاشة النتائج النهائية -->
+            <div class="login-form form-panel hidden-form" id="resultScreen">
+                <h2 data-i18n="resultTitle" style="margin-bottom: 1.5rem;">خطتك النارية جاهزة يا بطل</h2>
+                
+                <div class="result-box">
+                    <div class="cal-circle">
+                        <span id="res-calories" class="cal-num">0</span>
+                        <span class="cal-text" data-i18n="kcalLabel">سعرة حرارية اليوم</span>
+                    </div>
+                </div>
+                
+                <div class="macros-grid">
+                    <div class="macro-card protein-card">
+                        <div class="macro-icon">🍗</div>
+                        <div class="macro-val"><span id="res-protein">0</span>g</div>
+                        <div class="macro-label" data-i18n="proteinLabel">بروتين</div>
+                    </div>
+                    
+                    <div class="macro-card carbs-card">
+                        <div class="macro-icon">🍚</div>
+                        <div class="macro-val"><span id="res-carbs">0</span>g</div>
+                        <div class="macro-label" data-i18n="carbsLabel">كاربوهيدرات</div>
+                    </div>
+                    
+                    <div class="macro-card fats-card">
+                        <div class="macro-icon">🥑</div>
+                        <div class="macro-val"><span id="res-fats">0</span>g</div>
+                        <div class="macro-label" data-i18n="fatsLabel">دهون صحية</div>
+                    </div>
+                </div>
+                
+                <button type="button" class="btn" id="startJourneyBtn">
+                    <span data-i18n="startJourneyBtn">ابدأ مسيرتك الآن</span>
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ===== DASHBOARD ===== -->
+    <div class="dashboard-container" id="dashboardContainer" style="display:none;">
+        <div class="dash-header">
+            <div class="dash-welcome-row">
+                <h2><span data-i18n="dashHi">مرحباً،</span> <span id="dashUsername" class="dash-name">البطل</span> 👋</h2>
+                <div class="header-btns">
+                    <button class="history-btn" id="historyBtn" title="سجل الأيام" data-i18n-title="historyTitle">📅</button>
+                    <button class="history-btn" id="myMealsBtn" title="وجباتي المحفوظة" data-i18n-title="myMealsTitle">🍱</button>
+                </div>
+            </div>
+            <p class="dash-date" id="dashDate"></p>
+        </div>
+
+        <div class="dash-circles">
+            <div class="tracker-card">
+                <div class="tracker-ring-wrap">
+                    <svg class="tracker-ring" viewBox="0 0 160 160">
+                        <defs><linearGradient id="calGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#ff6b35"/><stop offset="100%" stop-color="#ffd700"/></linearGradient></defs>
+                        <circle class="ring-bg" cx="80" cy="80" r="68"/>
+                        <circle class="ring-fill" id="calRing" cx="80" cy="80" r="68" stroke="url(#calGrad)"/>
+                    </svg>
+                    <div class="tracker-center">
+                        <span class="tracker-num" id="dashCalRemain">0</span>
+                        <span class="tracker-sub" data-i18n="remainLabel">متبقية</span>
+                    </div>
+                </div>
+                <p class="tracker-label">🔥 <span data-i18n="calTracker">سعرة حرارية</span></p>
+                <button class="fab-add" id="addMealBtn">+</button>
+            </div>
+
+            <div class="tracker-card">
+                <div class="tracker-ring-wrap">
+                    <svg class="tracker-ring" viewBox="0 0 160 160">
+                        <defs><linearGradient id="waterGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#00b4d8"/><stop offset="100%" stop-color="#0077b6"/></linearGradient></defs>
+                        <circle class="ring-bg" cx="80" cy="80" r="68"/>
+                        <circle class="ring-fill" id="waterRing" cx="80" cy="80" r="68" stroke="url(#waterGrad)"/>
+                    </svg>
+                    <div class="tracker-center">
+                        <span class="tracker-num" id="dashWaterCur">0</span>
+                        <span class="tracker-sub" data-i18n="literUnit">لتر</span>
+                    </div>
+                </div>
+                <p class="tracker-label">💧 <span data-i18n="waterTracker">الماء</span></p>
+                <button class="fab-add" id="addWaterBtn">+</button>
+            </div>
+        </div>
+
+        <!-- Quick Add Meals -->
+        <div class="dash-card quick-add-card">
+            <h3>⚡ <span data-i18n="quickAddTitle">إضافة سريعة</span></h3>
+            <div class="quick-scroll" id="quickScroll">
+                <button class="qm-btn" data-qm="0"><span class="qm-emoji">🍚</span><span class="qm-name" data-i18n="qm_rice">أرز أبيض</span><span class="qm-info">250g · 325 <span data-i18n="qm_cal">سعرة</span></span></button>
+                <button class="qm-btn" data-qm="1"><span class="qm-emoji">🍗</span><span class="qm-name" data-i18n="qm_chicken">صدر دجاج مشوي</span><span class="qm-info">150g · 248 <span data-i18n="qm_cal">سعرة</span></span></button>
+                <button class="qm-btn" data-qm="2"><span class="qm-emoji">🥚</span><span class="qm-name" data-i18n="qm_eggs">بيض مسلوق (2)</span><span class="qm-info">100g · 156 <span data-i18n="qm_cal">سعرة</span></span></button>
+                <button class="qm-btn" data-qm="3"><span class="qm-emoji">🍞</span><span class="qm-name" data-i18n="qm_bread">خبز أبيض</span><span class="qm-info">60g · 165 <span data-i18n="qm_cal">سعرة</span></span></button>
+                <button class="qm-btn" data-qm="4"><span class="qm-emoji">🌴</span><span class="qm-name" data-i18n="qm_dates">تمر (3 حبات)</span><span class="qm-info">60g · 167 <span data-i18n="qm_cal">سعرة</span></span></button>
+                <button class="qm-btn" data-qm="5"><span class="qm-emoji">🥛</span><span class="qm-name" data-i18n="qm_yogurt">زبادي</span><span class="qm-info">170g · 100 <span data-i18n="qm_cal">سعرة</span></span></button>
+                <button class="qm-btn" data-qm="6"><span class="qm-emoji">🐟</span><span class="qm-name" data-i18n="qm_tuna">تونة معلبة</span><span class="qm-info">85g · 100 <span data-i18n="qm_cal">سعرة</span></span></button>
+                <button class="qm-btn" data-qm="7"><span class="qm-emoji">🍌</span><span class="qm-name" data-i18n="qm_banana">موز</span><span class="qm-info">120g · 105 <span data-i18n="qm_cal">سعرة</span></span></button>
+                <button class="qm-btn" data-qm="8"><span class="qm-emoji">🥣</span><span class="qm-name" data-i18n="qm_oats">شوفان</span><span class="qm-info">40g · 152 <span data-i18n="qm_cal">سعرة</span></span></button>
+                <button class="qm-btn" data-qm="9"><span class="qm-emoji">🥛</span><span class="qm-name" data-i18n="qm_milk">حليب كامل</span><span class="qm-info">250ml · 150 <span data-i18n="qm_cal">سعرة</span></span></button>
+            </div>
+        </div>
+
+        <div class="dash-card">
+            <h3 data-i18n="dailyMacros">الماكروز اليومية</h3>
+            <div class="macro-prog-row">
+                <span class="macro-prog-emoji">🍗</span>
+                <div class="macro-prog-body">
+                    <div class="macro-prog-header"><span data-i18n="proteinLabel">بروتين</span><span><span id="dashPCur">0</span>/<span id="dashPTgt">0</span>g</span></div>
+                    <div class="macro-prog-track"><div class="macro-prog-bar protein-bar" id="proteinBar"></div></div>
+                </div>
+            </div>
+            <div class="macro-prog-row">
+                <span class="macro-prog-emoji">🍚</span>
+                <div class="macro-prog-body">
+                    <div class="macro-prog-header"><span data-i18n="carbsLabel">كاربوهيدرات</span><span><span id="dashCCur">0</span>/<span id="dashCTgt">0</span>g</span></div>
+                    <div class="macro-prog-track"><div class="macro-prog-bar carbs-bar" id="carbsBar"></div></div>
+                </div>
+            </div>
+            <div class="macro-prog-row">
+                <span class="macro-prog-emoji">🥑</span>
+                <div class="macro-prog-body">
+                    <div class="macro-prog-header"><span data-i18n="fatsLabel">دهون صحية</span><span><span id="dashFCur">0</span>/<span id="dashFTgt">0</span>g</span></div>
+                    <div class="macro-prog-track"><div class="macro-prog-bar fats-bar" id="fatsBar"></div></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="dash-card">
+            <h3>📋 <span data-i18n="mealsTitle">الوجبات</span></h3>
+            <div id="mealsList" class="meals-list">
+                <p class="empty-state" id="noMealsMsg" data-i18n="noMeals">لم تُضف أي وجبة بعد</p>
+            </div>
+            <button class="today-meals-btn" id="todayMealsBtn" style="display:none;">
+                <span>🕒</span> <span data-i18n="viewTodayMeals">عرض وجبات اليوم بالتفصيل</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Meal Modal -->
+    <div class="modal-overlay" id="mealModal" style="display:none;">
+        <div class="modal-box">
+            <h3>🍽️ <span data-i18n="addMealTitle">إضافة وجبة</span></h3>
+            <div class="modal-field">
+                <input type="text" id="mealName" required placeholder=" ">
+                <label data-i18n="mealNamePh">اسم الوجبة</label>
+            </div>
+            <div class="modal-field">
+                <input type="number" id="mealCal" min="0" required placeholder=" ">
+                <label data-i18n="mealCalPh">السعرات الحرارية</label>
+            </div>
+            <div class="modal-triple">
+                <div class="modal-field">
+                    <input type="number" id="mealProt" min="0" placeholder=" ">
+                    <label data-i18n="mealProtPh">بروتين</label>
+                </div>
+                <div class="modal-field">
+                    <input type="number" id="mealCarb" min="0" placeholder=" ">
+                    <label data-i18n="mealCarbPh">كارب</label>
+                </div>
+                <div class="modal-field">
+                    <input type="number" id="mealFat" min="0" placeholder=" ">
+                    <label data-i18n="mealFatPh">دهون</label>
+                </div>
+            </div>
+            <div class="modal-btns">
+                <button class="btn" id="saveMealBtn"><span data-i18n="saveMealBtn">إضافة الوجبة</span></button>
+                <button class="btn modal-cancel-btn" id="cancelMealBtn"><span data-i18n="cancelBtn">إلغاء</span></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- History Modal -->
+    <div class="modal-overlay" id="historyModal" style="display:none;">
+        <div class="modal-box history-modal-box">
+            <div class="history-modal-header">
+                <h3>📅 <span data-i18n="historyTitle">سجل الأيام السابقة</span></h3>
+                <button class="history-close" id="historyCloseBtn">✕</button>
+            </div>
+            <div id="historyList" class="history-list">
+                <p class="empty-state" id="noHistoryMsg" data-i18n="noHistory">لا يوجد سجل بعد، ابدأ يومك الأول!</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Today's Meals Detail Modal -->
+    <div class="modal-overlay" id="todayMealsModal" style="display:none;">
+        <div class="modal-box history-modal-box">
+            <div class="history-modal-header">
+                <h3>🕒 <span data-i18n="todayMealsTitle">وجبات اليوم</span></h3>
+                <button class="history-close" id="todayMealsCloseBtn">✕</button>
+            </div>
+            <div id="todayMealsDetail" class="today-meals-detail"></div>
+        </div>
+    </div>
+
+    <!-- My Favorite Meals Modal -->
+    <div class="modal-overlay" id="myMealsModal" style="display:none;">
+        <div class="modal-box history-modal-box">
+            <div class="history-modal-header">
+                <h3>🍱 <span data-i18n="myMealsModalTitle">وجباتي المحفوظة</span></h3>
+                <button class="history-close" id="myMealsCloseBtn">✕</button>
+            </div>
+            
+            <!-- Quick Save Form -->
+            <div class="fav-form-toggle">
+                <button class="btn btn-outline" id="toggleFavForm" data-i18n="addFavBtn">إضافة وجبة للمفضلة +</button>
+            </div>
+            
+            <div class="fav-form-wrap" id="favFormWrap" style="display:none; margin-bottom: 1.5rem;">
+                <div class="modal-field">
+                    <input type="text" id="favName" placeholder=" ">
+                    <label data-i18n="mealNamePh">اسم الوجبة</label>
+                </div>
+                <div class="modal-field">
+                    <input type="number" id="favCal" placeholder=" ">
+                    <label data-i18n="mealCalPh">السعرات</label>
+                </div>
+                <div class="modal-triple">
+                    <div class="modal-field"><input type="number" id="favProt" placeholder=" "><label data-i18n="mealProtPh">بروتين</label></div>
+                    <div class="modal-field"><input type="number" id="favCarb" placeholder=" "><label data-i18n="mealCarbPh">كارب</label></div>
+                    <div class="modal-field"><input type="number" id="favFat" placeholder=" "><label data-i18n="mealFatPh">دهون</label></div>
+                </div>
+                <button class="btn" id="saveFavBtn" style="height: 40px; margin-top: 0.5rem;"><span data-i18n="saveFavAction">حفظ في المفضلة</span></button>
+            </div>
+
+            <div id="myMealsList" class="history-list">
+                <p class="empty-state" data-i18n="noFavs">لا يوجد وجبات محفوظة بعد</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
