@@ -88,7 +88,8 @@ const translations = {
         noFavs: "المفضلة فارغة، احفظ وجباتك لسهولة إضافتها!",
         addFavBtn: "إضافة وجبة للمفضلة +",
         saveFavAction: "حفظ في المفضلة",
-        favAddedMsg: "✅ تم إضافة الوجبة لمسيرتك اليومية!"
+        favAddedMsg: "✅ تم إضافة الوجبة لمسيرتك اليومية!",
+        logoutTitle: "تسجيل الخروج"
     },
     en: {
         title: "PEAK - Login",
@@ -179,29 +180,114 @@ const translations = {
         noFavs: "No favorites yet. Save meals for quick logging!",
         addFavBtn: "Add to Favorites +",
         saveFavAction: "Save as Favorite",
-        favAddedMsg: "✅ Meal added to your journey!"
+        favAddedMsg: "✅ Meal added to your journey!",
+        logoutTitle: "Logout"
     }
 };
 
 let currentLang = 'ar';
 let lastNutrition = null;
 let storedUsername = '';
+let currentUser = null;
+const ACCOUNTS_KEY = 'peak_accounts_v1';
+const SESSION_KEY = 'peak_session_user_v1';
+const normalizeEmail = (email) => (email || '').trim().toLowerCase();
+const readAccounts = () => JSON.parse(localStorage.getItem(ACCOUNTS_KEY) || '[]');
+const saveAccounts = (accounts) => localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(accounts));
+const readSession = () => sessionStorage.getItem(SESSION_KEY);
+const writeSession = (email) => sessionStorage.setItem(SESSION_KEY, email);
+const clearSession = () => sessionStorage.removeItem(SESSION_KEY);
+const sessionUser = normalizeEmail(readSession());
+if (sessionUser && readAccounts().some(acc => acc.email === sessionUser)) {
+    currentUser = { uid: sessionUser, email: sessionUser };
+}
+
+const auth = {
+    listeners: [],
+    onAuthStateChanged(callback) {
+        this.listeners.push(callback);
+        callback(currentUser);
+    },
+    emit() {
+        this.listeners.forEach(callback => callback(currentUser));
+    },
+    async signInWithEmailAndPassword(email, password) {
+        const normalizedEmail = normalizeEmail(email);
+        const accounts = readAccounts();
+        const account = accounts.find(acc => acc.email === normalizedEmail && acc.password === password);
+        if (!account) throw new Error(currentLang === 'ar' ? 'بيانات الدخول غير صحيحة' : 'Invalid email or password');
+        currentUser = { uid: normalizedEmail, email: normalizedEmail };
+        writeSession(normalizedEmail);
+        this.emit();
+        return { user: currentUser };
+    },
+    async createUserWithEmailAndPassword(email, password) {
+        const normalizedEmail = normalizeEmail(email);
+        const accounts = readAccounts();
+        if (accounts.some(acc => acc.email === normalizedEmail)) {
+            throw new Error(currentLang === 'ar' ? 'الحساب موجود مسبقاً' : 'Account already exists');
+        }
+        accounts.push({
+            email: normalizedEmail,
+            password,
+            userData: null,
+            dash: null,
+            history: []
+        });
+        saveAccounts(accounts);
+        currentUser = { uid: normalizedEmail, email: normalizedEmail };
+        writeSession(normalizedEmail);
+        this.emit();
+        return { user: currentUser };
+    },
+    async signOut() {
+        currentUser = null;
+        clearSession();
+        this.emit();
+    }
+};
 
 // Preset meals database (per serving)
 const PRESETS = [
-    { key:'qm_rice',    cal:325, p:6,  c:72, f:1  },
-    { key:'qm_chicken', cal:248, p:46, c:0,  f:5  },
-    { key:'qm_eggs',    cal:156, p:13, c:1,  f:11 },
-    { key:'qm_bread',   cal:165, p:5,  c:30, f:2  },
-    { key:'qm_dates',   cal:167, p:1,  c:45, f:0  },
-    { key:'qm_yogurt',  cal:100, p:17, c:6,  f:1  },
-    { key:'qm_tuna',    cal:100, p:22, c:0,  f:1  },
-    { key:'qm_banana',  cal:105, p:1,  c:27, f:0  },
-    { key:'qm_oats',    cal:152, p:5,  c:27, f:3  },
-    { key:'qm_milk',    cal:150, p:8,  c:12, f:8  }
+    { key: 'qm_rice', cal: 325, p: 6, c: 72, f: 1 },
+    { key: 'qm_chicken', cal: 248, p: 46, c: 0, f: 5 },
+    { key: 'qm_eggs', cal: 156, p: 13, c: 1, f: 11 },
+    { key: 'qm_bread', cal: 165, p: 5, c: 30, f: 2 },
+    { key: 'qm_dates', cal: 167, p: 1, c: 45, f: 0 },
+    { key: 'qm_yogurt', cal: 100, p: 17, c: 6, f: 1 },
+    { key: 'qm_tuna', cal: 100, p: 22, c: 0, f: 1 },
+    { key: 'qm_banana', cal: 105, p: 1, c: 27, f: 0 },
+    { key: 'qm_oats', cal: 152, p: 5, c: 27, f: 3 },
+    { key: 'qm_milk', cal: 150, p: 8, c: 12, f: 8 }
 ];
 
 document.addEventListener('DOMContentLoaded', () => {
+    // --- Global Data Store ---
+    let userData = {
+        name: '',
+        gender: 'male',
+        age: 0,
+        height: 0,
+        weight: 0,
+        goal: '',
+        targetWeight: 0,
+        profileCompleted: false,
+        myMeals: []
+    };
+
+    let dash = {
+        date: new Date().toISOString().slice(0, 10),
+        calTarget: 2000, calEaten: 0,
+        pTarget: 150, pEaten: 0,
+        cTarget: 200, cEaten: 0,
+        fTarget: 60, fEaten: 0,
+        waterTarget: 3, waterDrank: 0,
+        meals: []
+    };
+
+    let history = [];
+    let allowProfileFlow = sessionStorage.getItem('allowProfileFlow') === '1';
+
     function attachGlowEffect(form) {
         form.addEventListener('mousemove', (e) => {
             const rect = form.getBoundingClientRect();
@@ -210,7 +296,6 @@ document.addEventListener('DOMContentLoaded', () => {
             form.style.setProperty('--mouse-x', `${x}px`);
             form.style.setProperty('--mouse-y', `${y}px`);
         });
-
         form.addEventListener('mouseleave', () => {
             form.style.setProperty('--mouse-x', `50%`);
             form.style.setProperty('--mouse-y', `50%`);
@@ -227,104 +312,332 @@ document.addEventListener('DOMContentLoaded', () => {
     const targetWeightForm = document.getElementById('targetWeightForm');
     const resultScreen = document.getElementById('resultScreen');
 
-    // User data store
-    let userData = { gender: '', age: 0, height: 0, weight: 0, goal: '', targetWeight: 0 };
-    
     const showRegisterBtn = document.getElementById('showRegister');
     const showLoginBtn = document.getElementById('showLogin');
 
-    function switchForms(hideForm, showForm) {
-        hideForm.classList.remove('active-form');
-        hideForm.classList.add('hidden-form-up');
-        
+    function showStep(showForm) {
+        if (typeof showForm === 'string') showForm = document.getElementById(showForm);
+        if (!showForm) {
+            console.error("showStep: Target form not found", showForm);
+            return;
+        }
+        const allForms = document.querySelectorAll('.form-panel');
+        allForms.forEach(f => {
+            if (f !== showForm) {
+                f.classList.remove('active-form');
+                if (!f.classList.contains('hidden-form')) f.classList.add('hidden-form-up');
+            }
+        });
         showForm.classList.remove('hidden-form', 'hidden-form-up');
         showForm.classList.add('active-form');
+        console.log("Navigated to:", showForm.id);
     }
 
-    showRegisterBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        switchForms(loginForm, registerForm);
+    showRegisterBtn.addEventListener('click', (e) => { e.preventDefault(); showStep(registerForm); });
+    showLoginBtn.addEventListener('click', (e) => { e.preventDefault(); showStep(loginForm); });
+
+    // --- Local Sync Helpers ---
+    async function syncToFirebase() {
+        if (!currentUser) return;
+        try {
+            const accounts = readAccounts();
+            const idx = accounts.findIndex(acc => acc.email === currentUser.email);
+            if (idx === -1) return;
+            accounts[idx] = {
+                ...accounts[idx],
+                userData: JSON.parse(JSON.stringify(userData)),
+                dash: JSON.parse(JSON.stringify(dash)),
+                history: JSON.parse(JSON.stringify(history)),
+                lastUpdated: Date.now()
+            };
+            saveAccounts(accounts);
+        } catch (error) { 
+            console.error("Sync Error:", error); 
+        }
+    }
+
+    async function loadFromFirebase() {
+        if (!currentUser) return false;
+        try {
+            const accounts = readAccounts();
+            const account = accounts.find(acc => acc.email === currentUser.email);
+            if (account) {
+                const data = account;
+                if (data.userData) {
+                    userData = { ...userData, ...data.userData };
+                    if (!userData.myMeals) userData.myMeals = [];
+                }
+                
+                if (data.history) history = data.history;
+                else history = [];
+                
+                const todayKey = new Date().toISOString().slice(0, 10);
+                if (data.dash) {
+                    if (data.dash.date === todayKey) {
+                        dash = { ...dash, ...data.dash };
+                    } else {
+                        // Move yesterday to history
+                        if (data.dash.date && data.dash.meals?.length > 0) {
+                            history.unshift(JSON.parse(JSON.stringify(data.dash)));
+                            if (history.length > 30) history.pop();
+                        }
+                        
+                        // Reset for today but keep targets
+                        const oldTargets = {
+                            calTarget: data.dash.calTarget,
+                            pTarget: data.dash.pTarget,
+                            cTarget: data.dash.cTarget,
+                            fTarget: data.dash.fTarget,
+                            waterTarget: data.dash.waterTarget
+                        };
+                        
+                        dash = {
+                            ...dash,
+                            ...oldTargets,
+                            date: todayKey,
+                            calEaten: 0, pEaten: 0, cEaten: 0, fEaten: 0,
+                            waterDrank: 0, meals: []
+                        };
+                        
+                        // Recalculate targets if missing
+                        if (userData.profileCompleted && !dash.calTarget) {
+                            const nutrition = calculateNutrition();
+                            dash.calTarget = nutrition.calories;
+                            dash.pTarget = nutrition.protein;
+                            dash.cTarget = nutrition.carbs;
+                            dash.fTarget = nutrition.fats;
+                            dash.waterTarget = Math.round((userData.weight || 70) * 0.033 * 10) / 10;
+                        }
+                    }
+                } else {
+                    dash.date = todayKey;
+                    if (userData.profileCompleted) {
+                        const nutrition = calculateNutrition();
+                        dash.calTarget = nutrition.calories;
+                        dash.pTarget = nutrition.protein;
+                        dash.cTarget = nutrition.carbs;
+                        dash.fTarget = nutrition.fats;
+                        dash.waterTarget = Math.round((userData.weight || 70) * 0.033 * 10) / 10;
+                    }
+                }
+                
+                return true;
+            }
+        } catch (e) {
+            console.error("Load Error:", e);
+        }
+        return false;
+    }
+
+    // --- Persistence & Auth Observer ---
+    auth.onAuthStateChanged(async (user) => {
+        const mc = document.getElementById('mainContainer');
+        const dc = document.getElementById('dashboardContainer');
+        const loader = document.getElementById('loadingOverlay');
+
+        if (user) {
+            currentUser = user;
+            const found = await loadFromFirebase();
+            
+            if (found && userData.profileCompleted) {
+                const nutrition = calculateNutrition();
+                dash.calTarget = dash.calTarget || nutrition.calories;
+                dash.pTarget = dash.pTarget || nutrition.protein;
+                dash.cTarget = dash.cTarget || nutrition.carbs;
+                dash.fTarget = dash.fTarget || nutrition.fats;
+
+                lastNutrition = { 
+                    calories: dash.calTarget, 
+                    protein: dash.pTarget, 
+                    carbs: dash.cTarget, 
+                    fats: dash.fTarget 
+                };
+
+                mc.style.display = 'none';
+                dc.style.display = 'block';
+                document.body.classList.add('dashboard-active');
+                try {
+                    initDashboard(lastNutrition);
+                } catch (e) {
+                    console.error("Dashboard Init Error:", e);
+                    mc.style.display = 'flex';
+                    dc.style.display = 'none';
+                    showStep(profileForm);
+                }
+            } else if (found) {
+                mc.style.display = 'flex';
+                dc.style.display = 'none';
+                document.body.classList.remove('dashboard-active');
+                
+                if (!userData.age || !userData.weight) showStep(profileForm);
+                else if (!userData.goal) showStep(goalForm);
+                else showStep(targetWeightForm);
+            } else if (allowProfileFlow) {
+                mc.style.display = 'flex';
+                dc.style.display = 'none';
+                document.body.classList.remove('dashboard-active');
+                showStep(profileForm);
+            } else {
+                mc.style.display = 'flex';
+                dc.style.display = 'none';
+                document.body.classList.remove('dashboard-active');
+                showStep(profileForm);
+            }
+        } else {
+            currentUser = null;
+            mc.style.display = 'flex';
+            dc.style.display = 'none';
+            document.body.classList.remove('dashboard-active');
+            showStep(loginForm);
+            console.log("No user session found.");
+        }
+
+        setTimeout(() => {
+            if (loader) {
+                loader.style.opacity = '0';
+                setTimeout(() => loader.style.display = 'none', 300);
+            }
+        }, 500);
     });
 
-    showLoginBtn.addEventListener('click', (e) => {
+    // --- Logout Handling ---
+    const globalLogout = async () => {
+        try {
+            await auth.signOut();
+            allowProfileFlow = false;
+            sessionStorage.removeItem('allowProfileFlow');
+            location.href = 'index.html'; // Clear URL and reload
+        } catch (e) {
+            console.error("Logout error:", e);
+        }
+    };
+
+    document.getElementById('logoutFromProfile').addEventListener('click', (e) => {
         e.preventDefault();
-        switchForms(registerForm, loginForm);
+        globalLogout();
     });
 
-    function handleSubmission(e, successKey, callback = null) {
+    document.getElementById('logoutBtn').addEventListener('click', (e) => {
+        globalLogout();
+    });
+
+
+    async function handleSubmissionUI(e, successKey, asyncAction) {
         e.preventDefault();
         const btn = e.target.querySelector('button[type="submit"]');
         const originalContent = btn.innerHTML;
-        
+
         btn.innerHTML = `<span class="loader"></span> ${translations[currentLang].checking}`;
         btn.style.opacity = '0.9';
         btn.style.pointerEvents = 'none';
 
-        setTimeout(() => {
+        try {
+            await asyncAction();
             btn.innerHTML = translations[currentLang][successKey];
             btn.style.background = '#00e676';
             btn.style.color = '#fff';
             btn.style.boxShadow = '0 10px 25px -10px #00e676';
-            
+
+            return new Promise(resolve => {
+                setTimeout(() => {
+                    btn.innerHTML = originalContent;
+                    btn.style.opacity = '1';
+                    btn.style.pointerEvents = 'auto';
+                    btn.style.background = '';
+                    btn.style.color = '';
+                    btn.style.boxShadow = '';
+                    resolve();
+                }, 1000);
+            });
+        } catch (error) {
+            btn.innerHTML = currentLang === 'ar' ? "خطأ في العملية" : "Error occurred";
+            btn.style.background = '#ff5252';
+            console.error(error);
             setTimeout(() => {
                 btn.innerHTML = originalContent;
                 btn.style.opacity = '1';
                 btn.style.pointerEvents = 'auto';
                 btn.style.background = '';
-                btn.style.color = '';
-                btn.style.boxShadow = '';
-                
-                if (callback) {
-                    callback();
-                }
-            }, 1000);
-        }, 1500);
+            }, 2000);
+            throw error;
+        }
     }
 
-    loginForm.addEventListener('submit', (e) => handleSubmission(e, 'successLogin', () => {
-        // After login, check if profile data exists - if so skip to result
-        // For now, keep login as-is
-    }));
-    
-    registerForm.addEventListener('submit', (e) => {
-        handleSubmission(e, 'successReg', () => {
-            switchForms(registerForm, profileForm);
-        });
+    loginForm.addEventListener('submit', async (e) => {
+        const email = document.getElementById('login-email').value;
+        const pass = document.getElementById('login-password').value;
+        try {
+            await handleSubmissionUI(e, 'successLogin', async () => {
+                await auth.signInWithEmailAndPassword(email, pass);
+                // onAuthStateChanged will handle the rest
+            });
+        } catch (err) { alert(err.message); }
     });
 
-    profileForm.addEventListener('submit', (e) => {
-        // Save profile data
+    registerForm.addEventListener('submit', async (e) => {
+        const email = document.getElementById('reg-email').value;
+        const pass = document.getElementById('reg-password').value;
+        const name = document.getElementById('reg-name').value;
+        try {
+            await handleSubmissionUI(e, 'successReg', async () => {
+                allowProfileFlow = true;
+                sessionStorage.setItem('allowProfileFlow', '1');
+                const userCred = await auth.createUserWithEmailAndPassword(email, pass);
+                currentUser = userCred.user;
+                userData.name = name;
+                await syncToFirebase(); 
+            });
+        } catch (err) { alert(err.message); }
+    });
+
+    profileForm.addEventListener('submit', async (e) => {
+        const age = parseInt(document.getElementById('profile-age').value);
+        const height = parseInt(document.getElementById('profile-height').value);
+        const weight = parseFloat(document.getElementById('profile-weight').value);
+
+        if (age < 10 || age > 100 || height < 50 || height > 250 || weight < 20 || weight > 300) {
+            alert(currentLang === 'ar' ? 'يرجى إدخال بيانات منطقية' : 'Please enter valid values');
+            return;
+        }
+
         userData.gender = document.querySelector('input[name="gender"]:checked')?.value || 'male';
-        userData.age = parseInt(document.getElementById('profile-age').value);
-        userData.height = parseInt(document.getElementById('profile-height').value);
-        userData.weight = parseFloat(document.getElementById('profile-weight').value);
+        userData.age = age;
+        userData.height = height;
+        userData.weight = weight;
         
-        handleSubmission(e, 'successProfile', () => {
-             switchForms(profileForm, goalForm); 
+        await handleSubmissionUI(e, 'successProfile', async () => { 
+            await syncToFirebase(); 
+            showStep(goalForm); 
         });
     });
 
     // Auto advance on goal selection
     const goalRadios = document.querySelectorAll('input[name="goal"]');
     goalRadios.forEach(radio => {
-        radio.addEventListener('change', () => {
+        radio.addEventListener('change', async () => {
             userData.goal = radio.value;
+            await syncToFirebase(); // Await sync before moving on
             setTimeout(() => {
-                switchForms(goalForm, targetWeightForm);
-            }, 500); // Small delay to show choice glow effect
+                showStep(targetWeightForm);
+            }, 500); 
         });
     });
 
     // --- Calorie & Macro Calculator ---
     function calculateNutrition() {
-        const { gender, age, height, weight, goal, targetWeight } = userData;
+        const { gender, age, height, weight, goal } = userData;
+        
+        // Safety checks for NaN or invalid values
+        const vWeight = parseFloat(weight) || 70;
+        const vHeight = parseFloat(height) || 170;
+        const vAge = parseInt(age) || 25;
 
         // 1) BMR using Mifflin-St Jeor Equation
         let bmr;
-        if (gender === 'male') {
-            bmr = (10 * weight) + (6.25 * height) - (5 * age) + 5;
+        if (gender === 'female') {
+            bmr = (10 * vWeight) + (6.25 * vHeight) - (5 * vAge) - 161;
         } else {
-            bmr = (10 * weight) + (6.25 * height) - (5 * age) - 161;
+            bmr = (10 * vWeight) + (6.25 * vHeight) - (5 * vAge) + 5;
         }
 
         // 2) TDEE with moderate activity factor (1.55)
@@ -333,39 +646,22 @@ document.addEventListener('DOMContentLoaded', () => {
         // 3) Adjust calories based on goal
         let calories;
         switch (goal) {
-            case 'bulking':
-                calories = tdee + 500;   // Surplus for muscle gain
-                break;
-            case 'cutting':
-                calories = tdee - 500;   // Moderate deficit
-                break;
-            case 'weightloss':
-                calories = tdee - 700;   // Aggressive deficit
-                break;
-            default:
-                calories = tdee;
+            case 'bulking': calories = tdee + 500; break;
+            case 'cutting': calories = tdee - 500; break;
+            case 'weightloss': calories = tdee - 700; break;
+            default: calories = tdee;
         }
-        calories = Math.round(Math.max(calories, 1200)); // minimum safe floor
+        calories = Math.round(Math.max(calories, 1200));
 
-        // 4) Macronutrient split based on goal
-        let proteinPct, carbsPct, fatsPct;
-        switch (goal) {
-            case 'bulking':
-                proteinPct = 0.30; carbsPct = 0.50; fatsPct = 0.20;
-                break;
-            case 'cutting':
-                proteinPct = 0.35; carbsPct = 0.40; fatsPct = 0.25;
-                break;
-            case 'weightloss':
-                proteinPct = 0.30; carbsPct = 0.40; fatsPct = 0.30;
-                break;
-            default:
-                proteinPct = 0.30; carbsPct = 0.45; fatsPct = 0.25;
-        }
+        // 4) Macronutrient split
+        let pPct, cPct, fPct;
+        if (goal === 'bulking') { pPct = 0.30; cPct = 0.50; fPct = 0.20; }
+        else if (goal === 'cutting') { pPct = 0.35; cPct = 0.40; fPct = 0.25; }
+        else { pPct = 0.30; cPct = 0.40; fPct = 0.30; }
 
-        const protein = Math.round((calories * proteinPct) / 4); // 4 kcal/g
-        const carbs   = Math.round((calories * carbsPct) / 4);   // 4 kcal/g
-        const fats    = Math.round((calories * fatsPct) / 9);    // 9 kcal/g
+        const protein = Math.round((calories * pPct) / 4);
+        const carbs = Math.round((calories * cPct) / 4);
+        const fats = Math.round((calories * fPct) / 9);
 
         return { calories, protein, carbs, fats };
     }
@@ -390,7 +686,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Show results with animation
     function showResults(nutrition) {
-        switchForms(targetWeightForm, resultScreen);
+        showStep(resultScreen);
         // Trigger counter animations after the form transition
         setTimeout(() => {
             animateCounter(document.getElementById('res-calories'), nutrition.calories, 2000);
@@ -401,24 +697,30 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Dynamic Animation Analysis for the final step!
-    targetWeightForm.addEventListener('submit', (e) => {
+    targetWeightForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        userData.targetWeight = parseFloat(document.getElementById('target-weight-input').value);
+        const targetW = parseFloat(document.getElementById('target-weight-input').value);
+        if (!targetW || targetW < 30 || targetW > 300) {
+            alert(currentLang === 'ar' ? 'يرجى إدخال وزن مستهدف منطقي' : 'Please enter a valid target weight');
+            return;
+        }
+
+        userData.targetWeight = targetW;
+        userData.profileCompleted = true;
+        allowProfileFlow = false;
+        sessionStorage.removeItem('allowProfileFlow');
 
         const btn = e.target.querySelector('button[type="submit"]');
         const originalContent = btn.innerHTML;
-        
-        const stepsAr = [translations.ar.step1, translations.ar.step2, translations.ar.step3];
-        const stepsEn = [translations.en.step1, translations.en.step2, translations.en.step3];
-        const steps = currentLang === 'ar' ? stepsAr : stepsEn;
-        
+        const steps = currentLang === 'ar' ? [translations.ar.step1, translations.ar.step2, translations.ar.step3] : [translations.en.step1, translations.en.step2, translations.en.step3];
+
         btn.style.opacity = '0.9';
         btn.style.pointerEvents = 'none';
-        
+
         let stepIndex = 0;
         btn.innerHTML = `<span class="loader"></span> ${steps[stepIndex]}`;
 
-        const interval = setInterval(() => {
+        const interval = setInterval(async () => {
             stepIndex++;
             if (stepIndex < steps.length) {
                 btn.innerHTML = `<span class="loader"></span> ${steps[stepIndex]}`;
@@ -426,80 +728,62 @@ document.addEventListener('DOMContentLoaded', () => {
                 clearInterval(interval);
                 btn.innerHTML = translations[currentLang]['successAnalysis'];
                 btn.style.background = '#00e676';
-                btn.style.color = '#fff';
-                btn.style.boxShadow = '0 10px 25px -10px #00e676';
-                
-                // Calculate the nutrition plan
+
                 const nutrition = calculateNutrition();
                 lastNutrition = nutrition;
+
+                // Initialize dash target
+                dash.calTarget = nutrition.calories;
+                dash.pTarget = nutrition.protein;
+                dash.cTarget = nutrition.carbs;
+                dash.fTarget = nutrition.fats;
+                dash.date = new Date().toISOString().slice(0, 10);
+                dash.waterTarget = Math.round(userData.weight * 0.033 * 10) / 10;
+
+                await syncToFirebase();
 
                 setTimeout(() => {
                     btn.innerHTML = originalContent;
                     btn.style.opacity = '1';
                     btn.style.pointerEvents = 'auto';
                     btn.style.background = '';
-                    btn.style.color = '';
-                    btn.style.boxShadow = '';
-                    
-                    // Show the result screen with calculated values
-                    showResults(nutrition);
+                    initDashboard(nutrition);
                 }, 1800);
             }
-        }, 1200); // 1.2s per stage of analysis
+        }, 1200);
     });
 
-    // "Start Journey" button → Open Dashboard
     document.getElementById('startJourneyBtn').addEventListener('click', () => {
         if (lastNutrition) initDashboard(lastNutrition);
     });
 
     // ===== DASHBOARD ENGINE =====
-    const CIRC = 2 * Math.PI * 68; // 427.26
-    let dash = { calTarget:0, calEaten:0, pTarget:0, pEaten:0, cTarget:0, cEaten:0, fTarget:0, fEaten:0, waterTarget:3, waterDrank:0, meals:[] };
+    const CIRC = 2 * Math.PI * 68;
 
     function initDashboard(n) {
-        storedUsername = storedUsername || document.getElementById('reg-name')?.value || '';
-        document.getElementById('dashUsername').textContent = storedUsername || (currentLang === 'ar' ? 'البطل' : 'Champ');
-        const opts = { weekday:'long', year:'numeric', month:'long', day:'numeric' };
-        document.getElementById('dashDate').textContent = new Date().toLocaleDateString(currentLang === 'ar' ? 'ar-SA' : 'en-US', opts);
-
-        const todayKey = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-        const saved = JSON.parse(localStorage.getItem('peak_today') || 'null');
-
-        if (saved && saved.date === todayKey) {
-            // Resume today's data
-            dash.calTarget = saved.calTarget; dash.calEaten = saved.calEaten;
-            dash.pTarget = saved.pTarget; dash.pEaten = saved.pEaten;
-            dash.cTarget = saved.cTarget; dash.cEaten = saved.cEaten;
-            dash.fTarget = saved.fTarget; dash.fEaten = saved.fEaten;
-            dash.waterTarget = saved.waterTarget; dash.waterDrank = saved.waterDrank;
-            dash.meals = saved.meals || [];
-        } else {
-            // Archive old day if exists
-            if (saved && saved.date && saved.meals && saved.meals.length > 0) {
-                const history = JSON.parse(localStorage.getItem('peak_history') || '[]');
-                history.unshift(saved); // newest first
-                if (history.length > 30) history.pop(); // keep max 30 days
-                localStorage.setItem('peak_history', JSON.stringify(history));
-            }
-            // Start fresh day
-            dash.calTarget = n.calories; dash.calEaten = 0;
-            dash.pTarget = n.protein; dash.pEaten = 0;
-            dash.cTarget = n.carbs;   dash.cEaten = 0;
-            dash.fTarget = n.fats;    dash.fEaten = 0;
-            dash.waterTarget = Math.round(userData.weight * 0.033 * 10) / 10;
-            dash.waterDrank = 0; dash.meals = [];
+        // Ensure dash targets are set if n is missing
+        if (!n && !dash.calTarget) {
+            n = calculateNutrition();
         }
-        dash.date = todayKey;
+
+        if (n) {
+            dash.calTarget = n.calories || dash.calTarget || 2000;
+            dash.pTarget = n.protein || dash.pTarget || 150;
+            dash.cTarget = n.carbs || dash.cTarget || 200;
+            dash.fTarget = n.fats || dash.fTarget || 60;
+        }
+
+        storedUsername = userData.name || (currentLang === 'ar' ? 'البطل' : 'Champ');
+        document.getElementById('dashUsername').textContent = storedUsername;
+        const opts = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        document.getElementById('dashDate').textContent = new Date().toLocaleDateString(currentLang === 'ar' ? 'ar-SA' : 'en-US', opts);
 
         document.getElementById('dashPTgt').textContent = dash.pTarget;
         document.getElementById('dashCTgt').textContent = dash.cTarget;
         document.getElementById('dashFTgt').textContent = dash.fTarget;
 
         document.getElementById('calRing').style.strokeDasharray = CIRC;
-        document.getElementById('calRing').style.strokeDashoffset = CIRC;
         document.getElementById('waterRing').style.strokeDasharray = CIRC;
-        document.getElementById('waterRing').style.strokeDashoffset = CIRC;
 
         document.getElementById('mainContainer').style.display = 'none';
         document.getElementById('dashboardContainer').style.display = 'block';
@@ -509,35 +793,30 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateDash() {
-        const remain = Math.max(dash.calTarget - dash.calEaten, 0);
+        const remain = Math.max((dash.calTarget || 2000) - (dash.calEaten || 0), 0);
         document.getElementById('dashCalRemain').textContent = remain;
-        document.getElementById('calRing').style.strokeDashoffset = CIRC * (1 - Math.min(dash.calEaten / dash.calTarget, 1));
+        const calPct = Math.min((dash.calEaten || 0) / (dash.calTarget || 2000), 1);
+        document.getElementById('calRing').style.strokeDashoffset = CIRC * (1 - calPct);
 
-        const wp = Math.min(dash.waterDrank / dash.waterTarget, 1);
+        const wTarget = dash.waterTarget || 3;
+        const wDrank = dash.waterDrank || 0;
+        const wp = Math.min(wDrank / wTarget, 1);
         document.getElementById('waterRing').style.strokeDashoffset = CIRC * (1 - wp);
-        document.getElementById('dashWaterCur').textContent = parseFloat(dash.waterDrank.toFixed(2));
+        document.getElementById('dashWaterCur').textContent = parseFloat(wDrank.toFixed(2));
 
-        document.getElementById('dashPCur').textContent = dash.pEaten;
-        document.getElementById('dashCCur').textContent = dash.cEaten;
-        document.getElementById('dashFCur').textContent = dash.fEaten;
-        document.getElementById('proteinBar').style.width = Math.min(dash.pEaten / dash.pTarget * 100, 100) + '%';
-        document.getElementById('carbsBar').style.width   = Math.min(dash.cEaten / dash.cTarget * 100, 100) + '%';
-        document.getElementById('fatsBar').style.width    = Math.min(dash.fEaten / dash.fTarget * 100, 100) + '%';
+        document.getElementById('dashPCur').textContent = dash.pEaten || 0;
+        document.getElementById('dashCCur').textContent = dash.cEaten || 0;
+        document.getElementById('dashFCur').textContent = dash.fEaten || 0;
+        
+        const pT = dash.pTarget || 150;
+        const cT = dash.cTarget || 200;
+        const fT = dash.fTarget || 60;
 
-        // Persist to localStorage
-        saveTodayData();
-    }
+        document.getElementById('proteinBar').style.width = Math.min((dash.pEaten || 0) / pT * 100, 100) + '%';
+        document.getElementById('carbsBar').style.width = Math.min((dash.cEaten || 0) / cT * 100, 100) + '%';
+        document.getElementById('fatsBar').style.width = Math.min((dash.fEaten || 0) / fT * 100, 100) + '%';
 
-    function saveTodayData() {
-        localStorage.setItem('peak_today', JSON.stringify({
-            date: dash.date,
-            calTarget: dash.calTarget, calEaten: dash.calEaten,
-            pTarget: dash.pTarget, pEaten: dash.pEaten,
-            cTarget: dash.cTarget, cEaten: dash.cEaten,
-            fTarget: dash.fTarget, fEaten: dash.fEaten,
-            waterTarget: dash.waterTarget, waterDrank: dash.waterDrank,
-            meals: dash.meals
-        }));
+        syncToFirebase();
     }
 
     function renderMeals() {
@@ -579,7 +858,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function clearMealForm() {
-        ['mealName','mealCal','mealProt','mealCarb','mealFat'].forEach(id => document.getElementById(id).value = '');
+        ['mealName', 'mealCal', 'mealProt', 'mealCarb', 'mealFat'].forEach(id => document.getElementById(id).value = '');
     }
 
     // Water: +0.25L per tap
@@ -626,7 +905,7 @@ document.addEventListener('DOMContentLoaded', () => {
         container.innerHTML = '';
         dash.meals.forEach((m, i) => {
             const timeStr = m.time
-                ? new Date(m.time).toLocaleTimeString(currentLang === 'ar' ? 'ar-SA' : 'en-US', { hour:'2-digit', minute:'2-digit', hour12: true })
+                ? new Date(m.time).toLocaleTimeString(currentLang === 'ar' ? 'ar-SA' : 'en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
                 : '--:--';
 
             const card = document.createElement('div');
@@ -674,11 +953,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function renderHistory() {
-        const history = JSON.parse(localStorage.getItem('peak_history') || '[]');
+        // Fix: Use the global synced 'history' directly
         const list = document.getElementById('historyList');
         const msg = document.getElementById('noHistoryMsg');
 
-        if (!history.length) {
+        if (!history || !history.length) {
             list.innerHTML = ''; list.appendChild(msg); msg.style.display = '';
             return;
         }
@@ -691,7 +970,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         history.forEach((day, i) => {
             const dateObj = new Date(day.date + 'T00:00:00');
-            const dateStr = dateObj.toLocaleDateString(locale, { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+            const dateStr = dateObj.toLocaleDateString(locale, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
             const card = document.createElement('div');
             card.className = 'history-day';
@@ -728,8 +1007,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const saveFavBtn = document.getElementById('saveFavBtn');
     const myMealsList = document.getElementById('myMealsList');
 
-    let myMeals = JSON.parse(localStorage.getItem('peak_my_meals') || '[]');
-
     myMealsBtn.addEventListener('click', () => {
         renderMyMeals();
         myMealsModal.style.display = 'flex';
@@ -744,7 +1021,7 @@ document.addEventListener('DOMContentLoaded', () => {
         favFormWrap.style.display = favFormWrap.style.display === 'none' ? 'block' : 'none';
     });
 
-    saveFavBtn.addEventListener('click', () => {
+    saveFavBtn.addEventListener('click', async () => {
         const name = document.getElementById('favName').value.trim();
         const cal = parseInt(document.getElementById('favCal').value) || 0;
         const p = parseInt(document.getElementById('favProt').value) || 0;
@@ -753,26 +1030,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (!name || cal <= 0) return;
 
-        myMeals.push({ name, cal, p, c, f, id: Date.now() });
-        localStorage.setItem('peak_my_meals', JSON.stringify(myMeals));
-        
+        userData.myMeals.push({ name, cal, p, c, f, id: Date.now() });
+        await syncToFirebase();
+
         renderMyMeals();
         favFormWrap.style.display = 'none';
         ['favName', 'favCal', 'favProt', 'favCarb', 'favFat'].forEach(id => document.getElementById(id).value = '');
     });
 
     function renderMyMeals() {
-        if (!myMeals.length) {
+        if (!userData.myMeals || !userData.myMeals.length) {
             myMealsList.innerHTML = `<p class="empty-state" data-i18n="noFavs">${translations[currentLang].noFavs}</p>`;
             return;
         }
 
         myMealsList.innerHTML = '';
-        myMeals.forEach((m, idx) => {
+        userData.myMeals.forEach((m, idx) => {
             const item = document.createElement('div');
             item.className = 'fav-item';
             item.style.animationDelay = (idx * 0.05) + 's';
-            
+
             item.innerHTML = `
                 <div class="fav-info">
                     <span class="fav-name">${m.name}</span>
@@ -784,17 +1061,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             `;
 
-            // Click list item to log meal
             item.addEventListener('click', (e) => {
                 if (e.target.classList.contains('fav-del-btn')) return;
                 logFavoriteMeal(m);
             });
 
-            // Delete favorited meal
-            item.querySelector('.fav-del-btn').addEventListener('click', (e) => {
+            item.querySelector('.fav-del-btn').addEventListener('click', async (e) => {
                 e.stopPropagation();
-                myMeals = myMeals.filter(meal => meal.id !== m.id);
-                localStorage.setItem('peak_my_meals', JSON.stringify(myMeals));
+                userData.myMeals = userData.myMeals.filter(meal => meal.id !== m.id);
+                await syncToFirebase();
                 renderMyMeals();
             });
 
@@ -807,13 +1082,13 @@ document.addEventListener('DOMContentLoaded', () => {
         dash.meals.push({ ...m, time: new Date().toISOString() });
         updateDash();
         renderMeals();
-        
+
         // Visual feedback
         const msg = document.createElement('div');
         msg.className = 'fav-msg show';
         msg.textContent = translations[currentLang].favAddedMsg;
         myMealsList.prepend(msg);
-        
+
         setTimeout(() => {
             msg.style.opacity = '0';
             setTimeout(() => msg.remove(), 300);
@@ -824,15 +1099,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const langToggleBtn = document.getElementById('langToggle');
     langToggleBtn.addEventListener('click', () => {
         currentLang = currentLang === 'ar' ? 'en' : 'ar';
-        
+
         document.documentElement.lang = currentLang;
         document.documentElement.dir = currentLang === 'ar' ? 'rtl' : 'ltr';
-        
+
         // Update innerText
         const elements = document.querySelectorAll('[data-i18n]');
         elements.forEach(el => {
             const key = el.getAttribute('data-i18n');
-            if(translations[currentLang] && translations[currentLang][key]) {
+            if (translations[currentLang] && translations[currentLang][key]) {
                 el.innerText = translations[currentLang][key];
             }
         });
@@ -841,10 +1116,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const titleElements = document.querySelectorAll('[data-i18n-title]');
         titleElements.forEach(el => {
             const key = el.getAttribute('data-i18n-title');
-            if(translations[currentLang] && translations[currentLang][key]) {
+            if (translations[currentLang] && translations[currentLang][key]) {
                 el.setAttribute('title', translations[currentLang][key]);
             }
         });
+
+        // Refresh dashboard UI if active
+        if (document.body.classList.contains('dashboard-active')) {
+            const opts = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById('dashDate').textContent = new Date().toLocaleDateString(currentLang === 'ar' ? 'ar-SA' : 'en-US', opts);
+            renderMeals(); // Refresh meals to update delete buttons/text
+        }
     });
 });
-

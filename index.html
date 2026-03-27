@@ -24,7 +24,14 @@
         <div class="shape shape-2"></div>
         <div class="shape shape-3"></div>
     </div>
-    <div class="container" id="mainContainer">
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" style="position: fixed; inset: 0; background: var(--bg-dark); z-index: 1000; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 20px;">
+        <div class="loader" style="width: 3rem; height: 3rem; border-width: 4px; border-top-color: var(--primary-color);"></div>
+        <p style="color: var(--text-muted); font-size: 0.9rem; letter-spacing: 1px;" data-i18n="checking">جاري التحقق...</p>
+    </div>
+
+    <div class="container" id="mainContainer" style="display:none;">
         <!-- Logo -->
         <h1 class="logo" data-i18n="logo">القمة</h1>
         
@@ -115,6 +122,10 @@
                 <button type="submit" class="btn">
                     <span data-i18n="saveBtn">استمرار</span>
                 </button>
+                
+                <p class="signup-link">
+                    <a href="#" id="logoutFromProfile" style="color: var(--text-muted); font-size: 0.85rem; opacity: 0.7;">تسجيل الخروج وتبديل الحساب</a>
+                </p>
             </form>
 
             <!-- 4. نموذج اختيار الهدف -->
@@ -211,6 +222,7 @@
                 <div class="header-btns">
                     <button class="history-btn" id="historyBtn" title="سجل الأيام" data-i18n-title="historyTitle">📅</button>
                     <button class="history-btn" id="myMealsBtn" title="وجباتي المحفوظة" data-i18n-title="myMealsTitle">🍱</button>
+                    <button class="history-btn" id="logoutBtn" data-i18n-title="logoutTitle" style="background: rgba(255, 82, 82, 0.1); color: #ff5252; border-color: rgba(255, 82, 82, 0.2); margin-inline-start: 4px;">🚪</button>
                 </div>
             </div>
             <p class="dash-date" id="dashDate"></p>
