@@ -1,6 +1,6 @@
 const translations = {
     ar: {
-        title: "القمة - تسجيل الدخول",
+        title: "القمة",
         logo: "القمة",
         loginTitle: "تسجيل الدخول",
         emailLabel: "البريد الإلكتروني",
@@ -89,10 +89,11 @@ const translations = {
         addFavBtn: "إضافة وجبة للمفضلة +",
         saveFavAction: "حفظ في المفضلة",
         favAddedMsg: "✅ تم إضافة الوجبة لمسيرتك اليومية!",
-        logoutTitle: "تسجيل الخروج"
+        logoutTitle: "تسجيل الخروج",
+        copyrightText: "© 2026 عبدالله العتيبي"
     },
     en: {
-        title: "PEAK - Login",
+        title: "PEAK",
         logo: "PEAK",
         loginTitle: "Login to Account",
         emailLabel: "Email Address",
@@ -181,7 +182,8 @@ const translations = {
         addFavBtn: "Add to Favorites +",
         saveFavAction: "Save as Favorite",
         favAddedMsg: "✅ Meal added to your journey!",
-        logoutTitle: "Logout"
+        logoutTitle: "Logout",
+        copyrightText: "© 2026 Abdullah Alotaibi"
     }
 };
 
@@ -1097,6 +1099,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Language Toggle Logic
     const langToggleBtn = document.getElementById('langToggle');
+    const appFooter = document.querySelector('.app-footer');
+    let lastScrollY = window.scrollY;
+
+    function updateFooterVisibility() {
+        if (!appFooter) return;
+        const currentScrollY = window.scrollY;
+        if (currentScrollY <= 8 || currentScrollY < lastScrollY) {
+            appFooter.classList.remove('visible');
+        } else if (currentScrollY > lastScrollY) {
+            appFooter.classList.add('visible');
+        }
+        lastScrollY = currentScrollY;
+    }
+
+    window.addEventListener('scroll', updateFooterVisibility, { passive: true });
+    updateFooterVisibility();
+
     langToggleBtn.addEventListener('click', () => {
         currentLang = currentLang === 'ar' ? 'en' : 'ar';
 
