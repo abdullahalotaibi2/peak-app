@@ -22,7 +22,7 @@ body {
     display: flex;
     justify-content: center;
     align-items: flex-start; /* Start from top to allow scrolling */
-    padding: 2rem 1rem;      /* Safe padding for small screens */
+    padding: clamp(0.75rem, 2.5vw, 2rem) clamp(0.5rem, 2.5vw, 1rem);      /* Safe padding for small screens */
     overflow-x: hidden;
     overflow-y: auto;        /* Allow scrolling */
     position: relative;
@@ -134,16 +134,16 @@ p, label, input, button { font-size: clamp(0.9rem, 2.5vw, 1rem); }
     align-items: center;
     z-index: 10;
     width: 100%;
-    max-width: 420px;
-    padding: 20px;
+    max-width: min(100%, 420px);
+    padding: clamp(10px, 3vw, 20px);
 }
 
 .logo {
     font-family: 'Oswald', sans-serif;
-    font-size: 6.5rem;
+    font-size: clamp(3.2rem, 14vw, 6.5rem);
     font-weight: 700;
     color: var(--primary-color);
-    letter-spacing: 4px;
+    letter-spacing: clamp(1px, 0.8vw, 4px);
     margin-bottom: 2rem;
     text-transform: uppercase;
     font-style: italic;
@@ -171,8 +171,8 @@ p, label, input, button { font-size: clamp(0.9rem, 2.5vw, 1rem); }
     background: var(--bg-card);
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
-    padding: 3rem 2.5rem;
-    border-radius: 24px;
+    padding: clamp(1.6rem, 5vw, 3rem) clamp(1rem, 4vw, 2.5rem);
+    border-radius: clamp(16px, 4vw, 24px);
     width: 100%;
     box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.7);
     border: 1px solid rgba(255, 255, 255, 0.08);
@@ -199,7 +199,7 @@ p, label, input, button { font-size: clamp(0.9rem, 2.5vw, 1rem); }
 }
 
 .login-form h2 {
-    font-size: 1.8rem;
+    font-size: clamp(1.35rem, 4.5vw, 1.8rem);
     margin-bottom: 2.5rem;
     text-align: center;
     font-weight: 700;
@@ -216,7 +216,7 @@ p, label, input, button { font-size: clamp(0.9rem, 2.5vw, 1rem); }
 
 .input-group input {
     width: 100%;
-    padding: 1.2rem 1.2rem;
+    padding: clamp(0.95rem, 3.2vw, 1.2rem);
     background: rgba(255, 255, 255, 0.03);
     border: 2px solid rgba(255, 255, 255, 0.05);
     border-radius: 12px;
@@ -258,12 +258,12 @@ p, label, input, button { font-size: clamp(0.9rem, 2.5vw, 1rem); }
 
 .btn {
     width: 100%;
-    padding: 1.2rem;
+    padding: clamp(0.95rem, 3vw, 1.2rem);
     background: var(--primary-color);
     color: #0a0a0c;
     border: none;
     border-radius: 12px;
-    font-size: 1.2rem;
+    font-size: clamp(1rem, 3.5vw, 1.2rem);
     font-weight: 700;
     font-family: inherit;
     cursor: pointer;
@@ -669,9 +669,9 @@ body.dashboard-active {
 
 .dashboard-container {
     width: 100%;
-    max-width: 460px;
+    max-width: min(100%, 460px);
     margin: 0 auto;
-    padding: 25px 20px 40px;
+    padding: clamp(14px, 3vw, 25px) clamp(12px, 3vw, 20px) clamp(20px, 4vw, 40px);
     z-index: 10;
     position: relative;
     animation: fadeIn 0.8s ease-out;
@@ -700,7 +700,7 @@ body.dashboard-active {
 /* --- Tracker Circles Row --- */
 .dash-circles {
     display: flex;
-    gap: 1rem;
+    gap: clamp(0.6rem, 2vw, 1rem);
     margin-bottom: 1.5rem;
 }
 .tracker-card {
@@ -715,8 +715,8 @@ body.dashboard-active {
 }
 .tracker-ring-wrap {
     position: relative;
-    width: 130px;
-    height: 130px;
+    width: clamp(104px, 28vw, 130px);
+    height: clamp(104px, 28vw, 130px);
     margin: 0 auto 0.5rem;
 }
 .tracker-ring {
@@ -908,7 +908,7 @@ body.dashboard-active {
     border-radius: 20px;
     padding: 2rem 1.8rem;
     width: 100%;
-    max-width: 400px;
+    max-width: min(100%, 400px);
     animation: macroSlide 0.4s ease-out;
 }
 .modal-box h3 {
@@ -983,16 +983,20 @@ body.dashboard-active {
 @media (max-width: 600px) {
     body { padding: 1rem 0.5rem; align-items: flex-start; }
     .main-container { border-radius: 30px; margin-top: 50px; }
-    .dash-circles { gap: 0.8rem; }
-    .tracker-card { padding: 1rem; min-width: 100%; } /* Stack for best mobile view */
+    .dash-circles { gap: 0.8rem; flex-direction: column; }
+    .tracker-card { padding: 1rem; min-width: 0; }
     .quick-scroll { gap: 0.4rem; }
     .qm-btn { min-width: 90px; padding: 0.6rem; }
-    .tracker-ring-wrap { width: 140px; height: 140px; }
+    .tracker-ring-wrap { width: min(36vw, 140px); height: min(36vw, 140px); }
+    .history-day-stats { flex-wrap: wrap; row-gap: 0.45rem; column-gap: 0.7rem; }
 }
 
 @media (max-width: 380px) {
     .tracker-ring-wrap { width: 110px; height: 110px; }
     .tracker-num { font-size: 1.5rem !important; }
+    .modal-box { padding: 1.4rem 1rem; }
+    .dash-card { padding: 1rem 0.9rem; }
+    .history-btn { width: 36px; height: 36px; font-size: 1rem; }
 }
 
 /* ================================================
@@ -1117,7 +1121,7 @@ body.dashboard-active {
 
 /* History Modal */
 .history-modal-box {
-    max-width: 440px;
+    max-width: min(100%, 440px);
     max-height: 80vh;
     display: flex;
     flex-direction: column;
@@ -1454,5 +1458,4 @@ body.dashboard-active {
     transition: opacity 0.3s;
 }
 .fav-msg.show { opacity: 1; }
-
 
