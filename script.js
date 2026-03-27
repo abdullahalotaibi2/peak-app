@@ -1,3 +1,7 @@
+import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+import { getAuth, onAuthStateChanged as onFirebaseAuthStateChanged, signInWithEmailAndPassword as firebaseSignInWithEmailAndPassword, createUserWithEmailAndPassword as firebaseCreateUserWithEmailAndPassword, signOut as firebaseSignOut, setPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+
 const translations = {
     ar: {
         title: "القمة",
@@ -191,61 +195,49 @@ let currentLang = 'ar';
 let lastNutrition = null;
 let storedUsername = '';
 let currentUser = null;
-const ACCOUNTS_KEY = 'peak_accounts_v1';
-const SESSION_KEY = 'peak_session_user_v1';
-const normalizeEmail = (email) => (email || '').trim().toLowerCase();
-const readAccounts = () => JSON.parse(localStorage.getItem(ACCOUNTS_KEY) || '[]');
-const saveAccounts = (accounts) => localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(accounts));
-const readSession = () => sessionStorage.getItem(SESSION_KEY);
-const writeSession = (email) => sessionStorage.setItem(SESSION_KEY, email);
-const clearSession = () => sessionStorage.removeItem(SESSION_KEY);
-const sessionUser = normalizeEmail(readSession());
-if (sessionUser && readAccounts().some(acc => acc.email === sessionUser)) {
-    currentUser = { uid: sessionUser, email: sessionUser };
+const firebaseConfig = window.__firebaseConfig || {};
+const firebaseConfigReady = ['apiKey', 'authDomain', 'projectId', 'storageBucket', 'messagingSenderId', 'appId']
+    .every((key) => typeof firebaseConfig[key] === 'string' && firebaseConfig[key].trim() !== '');
+let firebaseAuth = null;
+let db = null;
+if (firebaseConfigReady) {
+    const firebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
+    firebaseAuth = getAuth(firebaseApp);
+    db = getFirestore(firebaseApp);
+    setPersistence(firebaseAuth, browserSessionPersistence).catch(() => {});
+} else {
+    console.error(currentLang === 'ar'
+        ? 'إعدادات Firebase غير مكتملة. عبئ window.__firebaseConfig داخل index.html'
+        : 'Firebase config is missing. Fill window.__firebaseConfig in index.html');
 }
 
 const auth = {
-    listeners: [],
     onAuthStateChanged(callback) {
-        this.listeners.push(callback);
-        callback(currentUser);
-    },
-    emit() {
-        this.listeners.forEach(callback => callback(currentUser));
+        if (!firebaseAuth) {
+            callback(null);
+            return () => {};
+        }
+        return onFirebaseAuthStateChanged(firebaseAuth, (user) => {
+            currentUser = user || null;
+            callback(currentUser);
+        });
     },
     async signInWithEmailAndPassword(email, password) {
-        const normalizedEmail = normalizeEmail(email);
-        const accounts = readAccounts();
-        const account = accounts.find(acc => acc.email === normalizedEmail && acc.password === password);
-        if (!account) throw new Error(currentLang === 'ar' ? 'بيانات الدخول غير صحيحة' : 'Invalid email or password');
-        currentUser = { uid: normalizedEmail, email: normalizedEmail };
-        writeSession(normalizedEmail);
-        this.emit();
-        return { user: currentUser };
+        if (!firebaseAuth) throw new Error(currentLang === 'ar' ? 'يرجى إدخال إعدادات Firebase أولاً' : 'Please set Firebase config first');
+        const userCred = await firebaseSignInWithEmailAndPassword(firebaseAuth, (email || '').trim(), password);
+        currentUser = userCred.user;
+        return userCred;
     },
     async createUserWithEmailAndPassword(email, password) {
-        const normalizedEmail = normalizeEmail(email);
-        const accounts = readAccounts();
-        if (accounts.some(acc => acc.email === normalizedEmail)) {
-            throw new Error(currentLang === 'ar' ? 'الحساب موجود مسبقاً' : 'Account already exists');
-        }
-        accounts.push({
-            email: normalizedEmail,
-            password,
-            userData: null,
-            dash: null,
-            history: []
-        });
-        saveAccounts(accounts);
-        currentUser = { uid: normalizedEmail, email: normalizedEmail };
-        writeSession(normalizedEmail);
-        this.emit();
-        return { user: currentUser };
+        if (!firebaseAuth) throw new Error(currentLang === 'ar' ? 'يرجى إدخال إعدادات Firebase أولاً' : 'Please set Firebase config first');
+        const userCred = await firebaseCreateUserWithEmailAndPassword(firebaseAuth, (email || '').trim(), password);
+        currentUser = userCred.user;
+        return userCred;
     },
     async signOut() {
+        if (!firebaseAuth) return;
+        await firebaseSignOut(firebaseAuth);
         currentUser = null;
-        clearSession();
-        this.emit();
     }
 };
 
@@ -313,6 +305,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const goalForm = document.getElementById('goalForm');
     const targetWeightForm = document.getElementById('targetWeightForm');
     const resultScreen = document.getElementById('resultScreen');
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    const mainContainer = document.getElementById('mainContainer');
+    const dashboardContainer = document.getElementById('dashboardContainer');
+    let authResolved = false;
+    const authFallbackTimer = setTimeout(() => {
+        if (authResolved) return;
+        if (loadingOverlay) {
+            loadingOverlay.style.opacity = '0';
+            setTimeout(() => loadingOverlay.style.display = 'none', 300);
+        }
+        if (mainContainer) mainContainer.style.display = 'flex';
+        if (dashboardContainer) dashboardContainer.style.display = 'none';
+        document.body.classList.remove('dashboard-active');
+        showStep(loginForm);
+    }, 6000);
 
     const showRegisterBtn = document.getElementById('showRegister');
     const showLoginBtn = document.getElementById('showLogin');
@@ -342,17 +349,13 @@ document.addEventListener('DOMContentLoaded', () => {
     async function syncToFirebase() {
         if (!currentUser) return;
         try {
-            const accounts = readAccounts();
-            const idx = accounts.findIndex(acc => acc.email === currentUser.email);
-            if (idx === -1) return;
-            accounts[idx] = {
-                ...accounts[idx],
+            await setDoc(doc(db, 'users', currentUser.uid), {
                 userData: JSON.parse(JSON.stringify(userData)),
                 dash: JSON.parse(JSON.stringify(dash)),
                 history: JSON.parse(JSON.stringify(history)),
-                lastUpdated: Date.now()
-            };
-            saveAccounts(accounts);
+                email: currentUser.email || '',
+                lastUpdated: serverTimestamp()
+            }, { merge: true });
         } catch (error) { 
             console.error("Sync Error:", error); 
         }
@@ -361,10 +364,9 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadFromFirebase() {
         if (!currentUser) return false;
         try {
-            const accounts = readAccounts();
-            const account = accounts.find(acc => acc.email === currentUser.email);
-            if (account) {
-                const data = account;
+            const snap = await getDoc(doc(db, 'users', currentUser.uid));
+            if (snap.exists()) {
+                const data = snap.data();
                 if (data.userData) {
                     userData = { ...userData, ...data.userData };
                     if (!userData.myMeals) userData.myMeals = [];
@@ -433,6 +435,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Persistence & Auth Observer ---
     auth.onAuthStateChanged(async (user) => {
+        authResolved = true;
+        clearTimeout(authFallbackTimer);
         const mc = document.getElementById('mainContainer');
         const dc = document.getElementById('dashboardContainer');
         const loader = document.getElementById('loadingOverlay');
