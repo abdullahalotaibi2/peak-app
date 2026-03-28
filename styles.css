@@ -5,7 +5,24 @@
     --bg-card: rgba(20, 20, 24, 0.65);
     --text-main: #ffffff;
     --text-muted: #a0a0a5;
+    --text-strong: #ffffff;
+    --btn-text-color: #0a0a0c;
+    --modal-bg: #16161a;
+    --ring-bg-stroke: rgba(255,255,255,0.06);
     --transition: all 0.3s ease;
+}
+
+:root[data-theme="light"] {
+    --primary-color: #334155;
+    --primary-hover: #1e293b;
+    --bg-dark: #eef3f9;
+    --bg-card: rgba(255, 255, 255, 0.85);
+    --text-main: #121826;
+    --text-muted: #4b5563;
+    --text-strong: #0f172a;
+    --btn-text-color: #ffffff;
+    --modal-bg: #ffffff;
+    --ring-bg-stroke: rgba(15, 23, 42, 0.18);
 }
 
 * {
@@ -260,7 +277,7 @@ p, label, input, button { font-size: clamp(0.9rem, 2.5vw, 1rem); }
     width: 100%;
     padding: clamp(0.95rem, 3vw, 1.2rem);
     background: var(--primary-color);
-    color: #0a0a0c;
+    color: var(--btn-text-color);
     border: none;
     border-radius: 12px;
     font-size: clamp(1rem, 3.5vw, 1.2rem);
@@ -337,7 +354,7 @@ p, label, input, button { font-size: clamp(0.9rem, 2.5vw, 1rem); }
     display: inline-block;
     width: 1.2rem;
     height: 1.2rem;
-    border: 2px solid #0a0a0c;
+    border: 2px solid var(--btn-text-color);
     border-radius: 50%;
     border-top-color: transparent;
     animation: spin 0.8s linear infinite;
@@ -559,7 +576,7 @@ p, label, input, button { font-size: clamp(0.9rem, 2.5vw, 1rem); }
     font-family: 'Oswald', sans-serif;
     font-size: 2.8rem;
     font-weight: 700;
-    color: #ffffff;
+    color: var(--text-strong);
     line-height: 1;
     letter-spacing: 1px;
 }
@@ -609,7 +626,7 @@ p, label, input, button { font-size: clamp(0.9rem, 2.5vw, 1rem); }
     font-family: 'Oswald', sans-serif;
     font-size: 1.6rem;
     font-weight: 700;
-    color: #fff;
+    color: var(--text-strong);
     line-height: 1.2;
 }
 
@@ -726,7 +743,7 @@ body.dashboard-active {
 }
 .ring-bg {
     fill: none;
-    stroke: rgba(255,255,255,0.06);
+    stroke: var(--ring-bg-stroke);
     stroke-width: 9;
 }
 .ring-fill {
@@ -751,7 +768,7 @@ body.dashboard-active {
     font-family: 'Oswald', sans-serif;
     font-size: 1.8rem;
     font-weight: 700;
-    color: #fff;
+    color: var(--text-strong);
     line-height: 1;
 }
 .tracker-sub {
@@ -760,6 +777,21 @@ body.dashboard-active {
     text-transform: uppercase;
     letter-spacing: 0.5px;
     margin-top: 2px;
+}
+.tracker-goal-mini {
+    margin-top: 5px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 72px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: clamp(0.58rem, 1.8vw, 0.66rem);
+    line-height: 1.2;
+    color: var(--text-muted);
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.12);
+    white-space: nowrap;
 }
 .tracker-label {
     font-size: 0.8rem;
@@ -772,7 +804,7 @@ body.dashboard-active {
     border-radius: 50%;
     border: none;
     background: var(--primary-color);
-    color: #0a0a0c;
+    color: var(--btn-text-color);
     font-size: 1.4rem;
     font-weight: 700;
     cursor: pointer;
@@ -802,6 +834,43 @@ body.dashboard-active {
     font-weight: 700;
     margin-bottom: 1rem;
     color: var(--text-main);
+}
+
+.goal-countdown-card {
+    position: relative;
+    overflow: hidden;
+}
+.goal-countdown-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(500px circle at 100% 0%, rgba(255, 183, 0, 0.08), transparent 35%);
+    pointer-events: none;
+}
+.goal-countdown-main {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    margin-bottom: 0.75rem;
+}
+.goal-countdown-num {
+    font-family: 'Oswald', sans-serif;
+    font-size: 2rem;
+    font-weight: 700;
+    color: #ffcf4a;
+    line-height: 1;
+}
+.goal-countdown-label {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+.goal-countdown-meta {
+    display: grid;
+    gap: 0.4rem;
+}
+.goal-countdown-meta span {
+    font-size: 0.8rem;
+    color: var(--text-muted);
 }
 
 /* --- Macro Progress Bars --- */
@@ -904,7 +973,7 @@ body.dashboard-active {
     animation: fadeIn 0.3s ease;
 }
 .modal-box {
-    background: #16161a;
+    background: var(--modal-bg);
     border: 1px solid rgba(255,255,255,0.1);
     border-radius: 20px;
     padding: 2rem 1.8rem;
@@ -954,7 +1023,7 @@ body.dashboard-active {
     inset-inline-start: 0.8rem;
     font-size: 0.75rem;
     color: var(--primary-color);
-    background: #16161a;
+    background: var(--modal-bg);
     padding: 0 0.4rem;
     border-radius: 3px;
 }
@@ -1166,6 +1235,65 @@ body.dashboard-active {
 .history-list::-webkit-scrollbar-thumb {
     background: rgba(255,255,255,0.1);
     border-radius: 10px;
+}
+
+.settings-section {
+    margin-bottom: 1rem;
+    padding-bottom: 0.9rem;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.settings-section:last-child {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: 0;
+}
+.settings-section h4 {
+    margin-bottom: 0.7rem;
+    font-size: 0.9rem;
+    color: var(--text-main);
+}
+
+.settings-modal-box {
+    max-height: 80vh;
+}
+
+.settings-content {
+    overflow-y: auto;
+    flex: 1;
+    padding-inline-end: 4px;
+}
+
+.settings-content::-webkit-scrollbar {
+    width: 4px;
+}
+
+.settings-content::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.16);
+    border-radius: 10px;
+}
+
+:root[data-theme="light"] .history-btn {
+    background: rgba(15, 23, 42, 0.06);
+    border-color: rgba(15, 23, 42, 0.16);
+}
+
+:root[data-theme="light"] .history-btn:hover {
+    background: rgba(15, 23, 42, 0.1);
+    border-color: rgba(51, 65, 85, 0.4);
+}
+
+:root[data-theme="light"] .tracker-goal-mini {
+    background: rgba(15, 23, 42, 0.06);
+    border-color: rgba(15, 23, 42, 0.14);
+}
+
+:root[data-theme="light"] .modal-field input {
+    background: rgba(15, 23, 42, 0.03);
+    border-color: rgba(15, 23, 42, 0.16);
+}
+
+:root[data-theme="light"] .modal-field input:focus {
+    background: rgba(15, 23, 42, 0.06);
 }
 
 /* Day Card */

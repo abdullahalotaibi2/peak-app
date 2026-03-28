@@ -26,6 +26,11 @@ const translations = {
         female: "أنثى",
         heightLabel: "الطول (سم)",
         weightLabel: "الوزن الحالي (كجم)",
+        activityDesc: "مستوى نشاطك اليومي",
+        activitySedentary: "خامل (حركة قليلة)",
+        activityLight: "خفيف (1-3 أيام تمرين)",
+        activityModerate: "متوسط (3-5 أيام تمرين)",
+        activityActive: "عالي (6+ أيام/عمل مجهد)",
         saveBtn: "استمرار",
         successProfile: "تم الحفظ!",
         goalTitle: "الهدف الرياضي",
@@ -94,6 +99,25 @@ const translations = {
         saveFavAction: "حفظ في المفضلة",
         favAddedMsg: "✅ تم إضافة الوجبة لمسيرتك اليومية!",
         logoutTitle: "تسجيل الخروج",
+        goalEtaTitle: "المدة المتوقعة للوصول للهدف",
+        goalEtaNoData: "أكمل بيانات الوزن الحالي والمستهدف لعرض التقدير",
+        goalEtaReached: "مبروك! وصلت لهدفك التقريبي",
+        goalEtaDate: "التاريخ المتوقع",
+        goalEtaPace: "معدل التغير الأسبوعي",
+        goalEtaDelta: "المتبقي للوصول",
+        settingsTitle: "الإعدادات",
+        themeSectionTitle: "النمط",
+        nameSectionTitle: "تغيير الاسم",
+        goalSettingsTitle: "تغيير الهدف",
+        calorieSettingsTitle: "تعديل السعرات اليومية",
+        saveNameAction: "حفظ الاسم",
+        manualCalLabel: "السعرات اليومية (يدوي)",
+        applyCalorieSettingsAction: "تحديث السعرات والماكروز",
+        goToProfileSettingsAction: "تعديل الهدف من صفحة البيانات",
+        switchToLight: "تفعيل النمط الصباحي",
+        switchToDark: "تفعيل النمط الليلي",
+        nameUpdatedMsg: "تم تحديث الاسم",
+        settingsUpdatedMsg: "تم تحديث السعرات والماكروز",
         copyrightText: "© 2026 عبدالله العتيبي"
     },
     en: {
@@ -119,6 +143,11 @@ const translations = {
         female: "Female",
         heightLabel: "Height (cm)",
         weightLabel: "Current Weight (kg)",
+        activityDesc: "Your daily activity level",
+        activitySedentary: "Sedentary (little movement)",
+        activityLight: "Light (1-3 training days)",
+        activityModerate: "Moderate (3-5 training days)",
+        activityActive: "High (6+ days / intense work)",
         saveBtn: "Continue",
         successProfile: "Saved!",
         goalTitle: "Fitness Goal",
@@ -187,6 +216,25 @@ const translations = {
         saveFavAction: "Save as Favorite",
         favAddedMsg: "✅ Meal added to your journey!",
         logoutTitle: "Logout",
+        goalEtaTitle: "Estimated Time to Goal",
+        goalEtaNoData: "Complete current and target weight to see estimate",
+        goalEtaReached: "Great job! You are at your target",
+        goalEtaDate: "Estimated date",
+        goalEtaPace: "Weekly change rate",
+        goalEtaDelta: "Remaining to target",
+        settingsTitle: "Settings",
+        themeSectionTitle: "Theme",
+        nameSectionTitle: "Change Name",
+        goalSettingsTitle: "Change Goal",
+        calorieSettingsTitle: "Daily Calories",
+        saveNameAction: "Save Name",
+        manualCalLabel: "Daily calories (manual)",
+        applyCalorieSettingsAction: "Update Calories & Macros",
+        goToProfileSettingsAction: "Edit goal from profile flow",
+        switchToLight: "Switch to Light Mode",
+        switchToDark: "Switch to Dark Mode",
+        nameUpdatedMsg: "Name updated",
+        settingsUpdatedMsg: "Calories and macros updated",
         copyrightText: "© 2026 Abdullah Alotaibi"
     }
 };
@@ -195,6 +243,8 @@ let currentLang = 'ar';
 let lastNutrition = null;
 let storedUsername = '';
 let currentUser = null;
+const THEME_KEY = 'peak_theme_pref_v1';
+const WATER_SNAPSHOT_KEY = 'peak_water_snapshot_v1';
 const firebaseConfig = window.__firebaseConfig || {};
 const firebaseConfigReady = ['apiKey', 'authDomain', 'projectId', 'storageBucket', 'messagingSenderId', 'appId']
     .every((key) => typeof firebaseConfig[key] === 'string' && firebaseConfig[key].trim() !== '');
@@ -210,6 +260,32 @@ if (firebaseConfigReady) {
         ? 'إعدادات Firebase غير مكتملة. عبئ window.__firebaseConfig داخل index.html'
         : 'Firebase config is missing. Fill window.__firebaseConfig in index.html');
 }
+
+const normalizeTheme = (theme) => theme === 'light' ? 'light' : 'dark';
+const readTheme = () => normalizeTheme(localStorage.getItem(THEME_KEY));
+const applyTheme = (theme) => {
+    const normalized = normalizeTheme(theme);
+    document.documentElement.setAttribute('data-theme', normalized);
+    localStorage.setItem(THEME_KEY, normalized);
+    return normalized;
+};
+
+const calculateWaterTarget = (weight, height, activityLevel = 'moderate') => {
+    const vWeight = parseFloat(weight) || 70;
+    const vHeight = parseFloat(height) || 170;
+    const activityBonusMap = {
+        sedentary: 0,
+        light: 0.2,
+        moderate: 0.35,
+        active: 0.5
+    };
+    const baseFromWeight = vWeight * 0.033;
+    const heightAdjustment = (vHeight - 170) * 0.002;
+    const activityBonus = activityBonusMap[activityLevel] || 0.35;
+    const liters = baseFromWeight + heightAdjustment + activityBonus;
+    const bounded = Math.min(Math.max(liters, 1.8), 6);
+    return Math.round(bounded * 10) / 10;
+};
 
 const auth = {
     onAuthStateChanged(callback) {
@@ -260,6 +336,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let userData = {
         name: '',
         gender: 'male',
+        activityLevel: 'moderate',
+        theme: readTheme(),
         age: 0,
         height: 0,
         weight: 0,
@@ -281,6 +359,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let history = [];
     let allowProfileFlow = sessionStorage.getItem('allowProfileFlow') === '1';
+    applyTheme(userData.theme);
+    const readWaterSnapshot = () => {
+        if (!currentUser) return null;
+        try {
+            return JSON.parse(localStorage.getItem(`${WATER_SNAPSHOT_KEY}:${currentUser.uid}`) || 'null');
+        } catch {
+            return null;
+        }
+    };
+    const writeWaterSnapshot = () => {
+        if (!currentUser || !dash?.date) return;
+        localStorage.setItem(`${WATER_SNAPSHOT_KEY}:${currentUser.uid}`, JSON.stringify({
+            date: dash.date,
+            waterDrank: dash.waterDrank || 0
+        }));
+    };
 
     function attachGlowEffect(form) {
         form.addEventListener('mousemove', (e) => {
@@ -410,7 +504,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             dash.pTarget = nutrition.protein;
                             dash.cTarget = nutrition.carbs;
                             dash.fTarget = nutrition.fats;
-                            dash.waterTarget = Math.round((userData.weight || 70) * 0.033 * 10) / 10;
+                            dash.waterTarget = calculateWaterTarget(userData.weight, userData.height, userData.activityLevel);
                         }
                     }
                 } else {
@@ -421,8 +515,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         dash.pTarget = nutrition.protein;
                         dash.cTarget = nutrition.carbs;
                         dash.fTarget = nutrition.fats;
-                        dash.waterTarget = Math.round((userData.weight || 70) * 0.033 * 10) / 10;
+                        dash.waterTarget = calculateWaterTarget(userData.weight, userData.height, userData.activityLevel);
                     }
+                }
+                const waterSnapshot = readWaterSnapshot();
+                if (waterSnapshot && waterSnapshot.date === todayKey && Number.isFinite(waterSnapshot.waterDrank)) {
+                    dash.waterDrank = Math.max(dash.waterDrank || 0, waterSnapshot.waterDrank);
                 }
                 
                 return true;
@@ -444,6 +542,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (user) {
             currentUser = user;
             const found = await loadFromFirebase();
+            userData.theme = applyTheme(userData.theme || readTheme());
             
             if (found && userData.profileCompleted) {
                 const nutrition = calculateNutrition();
@@ -491,6 +590,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } else {
             currentUser = null;
+            applyTheme(readTheme());
             mc.style.display = 'flex';
             dc.style.display = 'none';
             document.body.classList.remove('dashboard-active');
@@ -607,6 +707,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         userData.gender = document.querySelector('input[name="gender"]:checked')?.value || 'male';
+        userData.activityLevel = document.querySelector('input[name="activity"]:checked')?.value || 'moderate';
         userData.age = age;
         userData.height = height;
         userData.weight = weight;
@@ -630,8 +731,24 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- Calorie & Macro Calculator ---
+    function getMacroSplit(goal) {
+        if (goal === 'bulking') return { pPct: 0.30, cPct: 0.50, fPct: 0.20 };
+        if (goal === 'cutting') return { pPct: 0.35, cPct: 0.40, fPct: 0.25 };
+        return { pPct: 0.30, cPct: 0.40, fPct: 0.30 };
+    }
+
+    function buildMacrosFromCalories(calories, goal) {
+        const { pPct, cPct, fPct } = getMacroSplit(goal);
+        return {
+            calories: Math.round(calories),
+            protein: Math.round((calories * pPct) / 4),
+            carbs: Math.round((calories * cPct) / 4),
+            fats: Math.round((calories * fPct) / 9)
+        };
+    }
+
     function calculateNutrition() {
-        const { gender, age, height, weight, goal } = userData;
+        const { gender, age, height, weight, goal, activityLevel } = userData;
         
         // Safety checks for NaN or invalid values
         const vWeight = parseFloat(weight) || 70;
@@ -646,8 +763,15 @@ document.addEventListener('DOMContentLoaded', () => {
             bmr = (10 * vWeight) + (6.25 * vHeight) - (5 * vAge) + 5;
         }
 
-        // 2) TDEE with moderate activity factor (1.55)
-        let tdee = bmr * 1.55;
+        // 2) TDEE with activity factor based on user level
+        const activityFactorMap = {
+            sedentary: 1.2,
+            light: 1.375,
+            moderate: 1.55,
+            active: 1.725
+        };
+        const activityFactor = activityFactorMap[activityLevel] || 1.55;
+        let tdee = bmr * activityFactor;
 
         // 3) Adjust calories based on goal
         let calories;
@@ -659,17 +783,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         calories = Math.round(Math.max(calories, 1200));
 
-        // 4) Macronutrient split
-        let pPct, cPct, fPct;
-        if (goal === 'bulking') { pPct = 0.30; cPct = 0.50; fPct = 0.20; }
-        else if (goal === 'cutting') { pPct = 0.35; cPct = 0.40; fPct = 0.25; }
-        else { pPct = 0.30; cPct = 0.40; fPct = 0.30; }
-
-        const protein = Math.round((calories * pPct) / 4);
-        const carbs = Math.round((calories * cPct) / 4);
-        const fats = Math.round((calories * fPct) / 9);
-
-        return { calories, protein, carbs, fats };
+        return buildMacrosFromCalories(calories, goal);
     }
 
     // Animated count-up effect
@@ -744,7 +858,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 dash.cTarget = nutrition.carbs;
                 dash.fTarget = nutrition.fats;
                 dash.date = new Date().toISOString().slice(0, 10);
-                dash.waterTarget = Math.round(userData.weight * 0.033 * 10) / 10;
+                dash.waterTarget = calculateWaterTarget(userData.weight, userData.height, userData.activityLevel);
 
                 await syncToFirebase();
 
@@ -801,6 +915,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateDash() {
         const remain = Math.max((dash.calTarget || 2000) - (dash.calEaten || 0), 0);
         document.getElementById('dashCalRemain').textContent = remain;
+        document.getElementById('dashCalProgressMini').textContent = `${dash.calEaten || 0} / ${dash.calTarget || 2000}`;
         const calPct = Math.min((dash.calEaten || 0) / (dash.calTarget || 2000), 1);
         document.getElementById('calRing').style.strokeDashoffset = CIRC * (1 - calPct);
 
@@ -809,6 +924,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const wp = Math.min(wDrank / wTarget, 1);
         document.getElementById('waterRing').style.strokeDashoffset = CIRC * (1 - wp);
         document.getElementById('dashWaterCur').textContent = parseFloat(wDrank.toFixed(2));
+        document.getElementById('dashWaterProgressMini').textContent = `${parseFloat(wDrank.toFixed(2))} / ${parseFloat(wTarget.toFixed(2))}`;
 
         document.getElementById('dashPCur').textContent = dash.pEaten || 0;
         document.getElementById('dashCCur').textContent = dash.cEaten || 0;
@@ -822,7 +938,87 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('carbsBar').style.width = Math.min((dash.cEaten || 0) / cT * 100, 100) + '%';
         document.getElementById('fatsBar').style.width = Math.min((dash.fEaten || 0) / fT * 100, 100) + '%';
 
+        renderGoalCountdown();
         syncToFirebase();
+    }
+
+    function estimateGoalTimeline() {
+        const currentWeight = parseFloat(userData.weight);
+        const targetWeight = parseFloat(userData.targetWeight);
+        if (!Number.isFinite(currentWeight) || !Number.isFinite(targetWeight) || currentWeight <= 0 || targetWeight <= 0) return null;
+
+        const deltaKg = targetWeight - currentWeight;
+        const absDeltaKg = Math.abs(deltaKg);
+        if (absDeltaKg < 0.1) {
+            return { days: 0, targetDate: new Date(), weeklyRate: 0, deltaKg: 0 };
+        }
+
+        let weeklyRate = 0.45;
+        if (deltaKg > 0) {
+            weeklyRate = userData.goal === 'bulking' ? 0.30 : 0.25;
+        } else {
+            weeklyRate = userData.goal === 'weightloss' ? 0.75 : 0.50;
+        }
+        const activityRateFactorMap = {
+            sedentary: 0.85,
+            light: 0.95,
+            moderate: 1,
+            active: 1.1
+        };
+        weeklyRate *= activityRateFactorMap[userData.activityLevel] || 1;
+
+        const weeksNeeded = Math.max(1, Math.ceil(absDeltaKg / weeklyRate));
+        const daysNeeded = weeksNeeded * 7;
+        const targetDate = new Date();
+        targetDate.setDate(targetDate.getDate() + daysNeeded);
+
+        return { days: daysNeeded, targetDate, weeklyRate, deltaKg };
+    }
+
+    function renderGoalCountdown() {
+        const daysEl = document.getElementById('goalCountdownDays');
+        const labelEl = document.getElementById('goalCountdownLabel');
+        const dateEl = document.getElementById('goalCountdownDate');
+        const paceEl = document.getElementById('goalCountdownPace');
+        const deltaEl = document.getElementById('goalCountdownDelta');
+        if (!daysEl || !labelEl || !dateEl || !paceEl || !deltaEl) return;
+
+        const t = translations[currentLang];
+        const estimate = estimateGoalTimeline();
+        if (!estimate) {
+            daysEl.textContent = '--';
+            labelEl.textContent = t.goalEtaNoData;
+            dateEl.textContent = `${t.goalEtaDate}: —`;
+            paceEl.textContent = `${t.goalEtaPace}: —`;
+            deltaEl.textContent = `${t.goalEtaDelta}: —`;
+            return;
+        }
+
+        if (estimate.days === 0) {
+            daysEl.textContent = '0';
+            labelEl.textContent = t.goalEtaReached;
+            const locale = currentLang === 'ar' ? 'ar-SA' : 'en-US';
+            dateEl.textContent = `${t.goalEtaDate}: ${new Date().toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric' })}`;
+            paceEl.textContent = `${t.goalEtaPace}: —`;
+            deltaEl.textContent = `${t.goalEtaDelta}: 0`;
+            return;
+        }
+
+        const locale = currentLang === 'ar' ? 'ar-SA' : 'en-US';
+        const dateText = estimate.targetDate.toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric' });
+        const rateText = currentLang === 'ar'
+            ? `${estimate.weeklyRate.toFixed(2)} كجم/أسبوع`
+            : `${estimate.weeklyRate.toFixed(2)} kg/week`;
+        const deltaType = estimate.deltaKg > 0
+            ? (currentLang === 'ar' ? 'زيادة' : 'gain')
+            : (currentLang === 'ar' ? 'نزول' : 'loss');
+        const deltaText = `${Math.abs(estimate.deltaKg).toFixed(1)} ${currentLang === 'ar' ? 'كجم' : 'kg'} ${deltaType}`;
+
+        daysEl.textContent = String(estimate.days);
+        labelEl.textContent = currentLang === 'ar' ? `متبقي تقريبًا ${estimate.days} يوم` : `${estimate.days} days left (est.)`;
+        dateEl.textContent = `${t.goalEtaDate}: ${dateText}`;
+        paceEl.textContent = `${t.goalEtaPace}: ${rateText}`;
+        deltaEl.textContent = `${t.goalEtaDelta}: ${deltaText}`;
     }
 
     function renderMeals() {
@@ -868,9 +1064,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Water: +0.25L per tap
-    document.getElementById('addWaterBtn').addEventListener('click', () => {
+    document.getElementById('addWaterBtn').addEventListener('click', async () => {
         dash.waterDrank = Math.round((dash.waterDrank + 0.25) * 100) / 100;
+        writeWaterSnapshot();
         updateDash();
+        await syncToFirebase();
     });
 
     // Quick-Add Preset Meals
@@ -1101,6 +1299,83 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 1500);
     }
 
+    const settingsBtn = document.getElementById('settingsBtn');
+    const settingsModal = document.getElementById('settingsModal');
+    const settingsCloseBtn = document.getElementById('settingsCloseBtn');
+    const themeToggleBtn = document.getElementById('themeToggleBtn');
+    const themeToggleText = document.getElementById('themeToggleText');
+    const settingsNameInput = document.getElementById('settingsNameInput');
+    const saveNameBtn = document.getElementById('saveNameBtn');
+    const settingsManualCalories = document.getElementById('settingsManualCalories');
+    const applyGoalSettingsBtn = document.getElementById('applyGoalSettingsBtn');
+    const goToProfileSettingsBtn = document.getElementById('goToProfileSettingsBtn');
+
+    function updateThemeToggleText() {
+        const currentTheme = normalizeTheme(document.documentElement.getAttribute('data-theme'));
+        themeToggleText.textContent = currentTheme === 'dark'
+            ? translations[currentLang].switchToLight
+            : translations[currentLang].switchToDark;
+    }
+
+    function openSettingsModal() {
+        settingsNameInput.value = userData.name || '';
+        settingsManualCalories.value = dash.calTarget || '';
+        updateThemeToggleText();
+        settingsModal.style.display = 'flex';
+    }
+
+    settingsBtn.addEventListener('click', openSettingsModal);
+    settingsCloseBtn.addEventListener('click', () => { settingsModal.style.display = 'none'; });
+    settingsModal.addEventListener('click', (e) => {
+        if (e.target.id === 'settingsModal') settingsModal.style.display = 'none';
+    });
+
+    themeToggleBtn.addEventListener('click', async () => {
+        const currentTheme = normalizeTheme(document.documentElement.getAttribute('data-theme'));
+        const nextTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        userData.theme = applyTheme(nextTheme);
+        updateThemeToggleText();
+        await syncToFirebase();
+    });
+
+    saveNameBtn.addEventListener('click', async () => {
+        const nextName = settingsNameInput.value.trim();
+        if (!nextName) return;
+        userData.name = nextName;
+        storedUsername = nextName;
+        document.getElementById('dashUsername').textContent = storedUsername;
+        await syncToFirebase();
+        alert(translations[currentLang].nameUpdatedMsg);
+    });
+
+    applyGoalSettingsBtn.addEventListener('click', async () => {
+        const manualCalories = parseInt(settingsManualCalories.value);
+        if (!Number.isFinite(manualCalories) || manualCalories < 1200) return;
+        const targetCalories = manualCalories;
+        const nutrition = buildMacrosFromCalories(targetCalories, userData.goal);
+
+        dash.calTarget = nutrition.calories;
+        dash.pTarget = nutrition.protein;
+        dash.cTarget = nutrition.carbs;
+        dash.fTarget = nutrition.fats;
+        lastNutrition = nutrition;
+
+        updateDash();
+        renderGoalCountdown();
+        await syncToFirebase();
+        alert(translations[currentLang].settingsUpdatedMsg);
+    });
+
+    goToProfileSettingsBtn.addEventListener('click', () => {
+        settingsModal.style.display = 'none';
+        allowProfileFlow = true;
+        sessionStorage.setItem('allowProfileFlow', '1');
+        document.getElementById('dashboardContainer').style.display = 'none';
+        document.getElementById('mainContainer').style.display = 'flex';
+        document.body.classList.remove('dashboard-active');
+        showStep(profileForm);
+    });
+
     // Language Toggle Logic
     const langToggleBtn = document.getElementById('langToggle');
     const appFooter = document.querySelector('.app-footer');
@@ -1149,6 +1424,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const opts = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
             document.getElementById('dashDate').textContent = new Date().toLocaleDateString(currentLang === 'ar' ? 'ar-SA' : 'en-US', opts);
             renderMeals(); // Refresh meals to update delete buttons/text
+            renderGoalCountdown();
         }
+        updateThemeToggleText();
     });
 });

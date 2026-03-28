@@ -107,6 +107,38 @@
                     <input type="number" id="profile-weight" required placeholder=" " min="20" max="300">
                     <label for="profile-weight" data-i18n="weightLabel">الوزن الحالي (كجم)</label>
                 </div>
+
+                <p style="text-align: center; color: var(--text-muted); margin-bottom: 1rem; font-size: 0.9rem;" data-i18n="activityDesc">مستوى نشاطك اليومي</p>
+                <div class="goal-selection" style="margin-bottom: 1.4rem;">
+                    <label class="goal-card">
+                        <input type="radio" name="activity" value="sedentary" required>
+                        <div class="goal-content">
+                            <span class="goal-icon">🛋️</span>
+                            <span data-i18n="activitySedentary">خامل (حركة قليلة)</span>
+                        </div>
+                    </label>
+                    <label class="goal-card">
+                        <input type="radio" name="activity" value="light">
+                        <div class="goal-content">
+                            <span class="goal-icon">🚶</span>
+                            <span data-i18n="activityLight">خفيف (1-3 أيام تمرين)</span>
+                        </div>
+                    </label>
+                    <label class="goal-card">
+                        <input type="radio" name="activity" value="moderate" checked>
+                        <div class="goal-content">
+                            <span class="goal-icon">🏋️</span>
+                            <span data-i18n="activityModerate">متوسط (3-5 أيام تمرين)</span>
+                        </div>
+                    </label>
+                    <label class="goal-card">
+                        <input type="radio" name="activity" value="active">
+                        <div class="goal-content">
+                            <span class="goal-icon">⚡</span>
+                            <span data-i18n="activityActive">عالي (6+ أيام/عمل مجهد)</span>
+                        </div>
+                    </label>
+                </div>
                 
                 <button type="submit" class="btn">
                     <span data-i18n="saveBtn">استمرار</span>
@@ -212,6 +244,7 @@
                     <button class="history-btn" id="historyBtn" title="سجل الأيام" data-i18n-title="historyTitle">📅</button>
                     <button class="history-btn" id="myMealsBtn" title="وجباتي المحفوظة" data-i18n-title="myMealsTitle">🍱</button>
                     <button class="history-btn lang-toggle-btn" id="langToggle" title="تغيير اللغة" aria-label="تغيير اللغة">🌍</button>
+                    <button class="history-btn" id="settingsBtn" title="الإعدادات" data-i18n-title="settingsTitle">⚙️</button>
                     <button class="history-btn" id="logoutBtn" data-i18n-title="logoutTitle" style="background: rgba(255, 82, 82, 0.1); color: #ff5252; border-color: rgba(255, 82, 82, 0.2); margin-inline-start: 4px;">🚪</button>
                 </div>
             </div>
@@ -229,6 +262,7 @@
                     <div class="tracker-center">
                         <span class="tracker-num" id="dashCalRemain">0</span>
                         <span class="tracker-sub" data-i18n="remainLabel">متبقية</span>
+                        <span class="tracker-goal-mini" id="dashCalProgressMini">0 / 0</span>
                     </div>
                 </div>
                 <p class="tracker-label">🔥 <span data-i18n="calTracker">سعرة حرارية</span></p>
@@ -245,10 +279,24 @@
                     <div class="tracker-center">
                         <span class="tracker-num" id="dashWaterCur">0</span>
                         <span class="tracker-sub" data-i18n="literUnit">لتر</span>
+                        <span class="tracker-goal-mini" id="dashWaterProgressMini">0 / 0</span>
                     </div>
                 </div>
                 <p class="tracker-label">💧 <span data-i18n="waterTracker">الماء</span></p>
                 <button class="fab-add" id="addWaterBtn">+</button>
+            </div>
+        </div>
+
+        <div class="dash-card goal-countdown-card" id="goalCountdownCard">
+            <h3>⏳ <span data-i18n="goalEtaTitle">المدة المتوقعة للوصول للهدف</span></h3>
+            <div class="goal-countdown-main">
+                <span class="goal-countdown-num" id="goalCountdownDays">--</span>
+                <span class="goal-countdown-label" id="goalCountdownLabel">—</span>
+            </div>
+            <div class="goal-countdown-meta">
+                <span id="goalCountdownDate">—</span>
+                <span id="goalCountdownPace">—</span>
+                <span id="goalCountdownDelta">—</span>
             </div>
         </div>
 
@@ -394,6 +442,49 @@
 
             <div id="myMealsList" class="history-list">
                 <p class="empty-state" data-i18n="noFavs">لا يوجد وجبات محفوظة بعد</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="settingsModal" style="display:none;">
+        <div class="modal-box history-modal-box settings-modal-box">
+            <div class="history-modal-header">
+                <h3>⚙️ <span data-i18n="settingsTitle">الإعدادات</span></h3>
+                <button class="history-close" id="settingsCloseBtn">✕</button>
+            </div>
+
+            <div class="settings-content">
+                <div class="settings-section">
+                    <h4 data-i18n="themeSectionTitle">النمط</h4>
+                    <button class="btn btn-outline" id="themeToggleBtn" style="height: 42px;">
+                        <span id="themeToggleText">النمط الصباحي</span>
+                    </button>
+                </div>
+
+                <div class="settings-section">
+                    <h4 data-i18n="nameSectionTitle">تغيير الاسم</h4>
+                    <div class="modal-field">
+                        <input type="text" id="settingsNameInput" placeholder=" ">
+                        <label data-i18n="nameLabel">الاسم الكامل</label>
+                    </div>
+                    <button class="btn" id="saveNameBtn" style="height: 42px;"><span data-i18n="saveNameAction">حفظ الاسم</span></button>
+                </div>
+
+                <div class="settings-section">
+                    <h4 data-i18n="calorieSettingsTitle">تعديل السعرات اليومية</h4>
+                    <div class="modal-field">
+                        <input type="number" id="settingsManualCalories" min="1200" max="7000" placeholder=" ">
+                        <label data-i18n="manualCalLabel">السعرات اليومية (يدوي)</label>
+                    </div>
+                    <button class="btn" id="applyGoalSettingsBtn" style="height: 42px;"><span data-i18n="applyCalorieSettingsAction">تحديث السعرات والماكروز</span></button>
+                </div>
+
+                <div class="settings-section">
+                    <h4 data-i18n="goalSettingsTitle">تغيير الهدف</h4>
+                    <button class="btn btn-outline" id="goToProfileSettingsBtn" style="height: 42px;">
+                        <span data-i18n="goToProfileSettingsAction">تعديل الهدف من صفحة البيانات</span>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
